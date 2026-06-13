@@ -18,33 +18,6 @@ st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
 # CUSTOM CSS (CANLI RENKLER)
 # ════════════════════════════
 
-st.markdown("""
-&lt;style>
-    .stApp {
-        background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%);
-        color: #ffffff;
-    }
-    .stSidebar {
-        background: linear-gradient(180deg, #16213e 0%, #0f3460 100%);
-    }
-    .stMetric {
-        background: rgba(30, 136, 229, 0.1);
-        border-radius: 10px;
-        padding: 10px;
-        border: 1px solid rgba(30, 136, 229, 0.3);
-    }
-    h1, h2, h3 {
-        color: #4fc3f7 !important;
-    }
-    .stDataFrame {
-        border-radius: 10px;
-    }
-    .stSelectbox > div > div {
-        background-color: #1a1a2e;
-        color: white;
-    }
-&lt;/style>
-""", unsafe_allow_html=True)
 
 # ════════════════════════════
 # VERİLER
