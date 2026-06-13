@@ -520,7 +520,7 @@ elif page == "🥇 Altın & Döviz":
     # Altın & Gümüş
     st.subheader("🥇 Kıymetli Madenler")
     metal_cols = st.columns(2)
-        metals = ['🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)']
+    metals = ['🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)']
     for i, name in enumerate(metals):
         with metal_cols[i]:
             df_m = get_commodity_data(COMMODITIES[name])
