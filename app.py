@@ -1,5 +1,5 @@
 """
-SentiFlow v1.5 — Altın, Gümüş, Döviz + Canlı Renkler
+SentiFlow v1.5 — Temiz + Canlı Renkler
 """
 
 import streamlit as st
@@ -8,30 +8,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
-from ta import momentum, trend, volatility
+from ta import momentum, trend
 import ccxt
 from datetime import datetime
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
-
-# Tema seçimi
-theme = st.sidebar.selectbox("🎨 Tema", ["🌙 Karanlık", "☀️ Açık"], index=0)
-
-if theme == "🌙 Karanlık":
-    bg_color = '#0a0a1a'
-    card_bg = 'rgba(26,26,46,0.5)'
-    text_color = 'white'
-    st.markdown("""&lt;style>.stApp{background:linear-gradient(180deg,#0a0a1a,#1a1a2e);color:#fff}
-    .stSidebar{background:linear-gradient(180deg,#16213e,#0f3460)}&lt;/style>""", unsafe_allow_html=True)
-else:
-    bg_color = '#ffffff'
-    card_bg = '#f8f9fa'
-    text_color = 'black'
-
-# ════════════════════════════
-# CUSTOM CSS (CANLI RENKLER)
-# ════════════════════════════
-
 
 # ════════════════════════════
 # VERİLER
@@ -74,7 +55,6 @@ CRYPTO_BINANCE = [
 
 CRYPTO_EXTRA = ['NETX/USDT', 'KAS/USDT', 'CFX/USDT']
 
-# Altın, Gümüş, Döviz
 COMMODITIES = {
     '🥇 Altın (Ons/USD)': 'GC=F',
     '🥈 Gümüş (Ons/USD)': 'SI=F',
@@ -152,8 +132,7 @@ def calc_sentiment(df):
     price = float(close.iloc[-1])
     
     rsi_series = momentum.RSIIndicator(close, window=14).rsi()
-    macd_ind = trend.MACD(close)
-    macd_hist = macd_ind.macd_diff()
+    macd_hist = trend.MACD(close).macd_diff()
     stoch = momentum.StochasticOscillator(high, low, close).stoch()
     
     rsi_val = float(rsi_series.iloc[-1])
@@ -291,7 +270,6 @@ with st.sidebar:
 # SAYFALAR
 # ════════════════════════════
 
-# ═══ ANA SAYFA ═══
 if page == "🏠 Ana Sayfa":
     st.title("🌊 SentiFlow — Dashboard")
     
@@ -309,21 +287,20 @@ if page == "🏠 Ana Sayfa":
                 fig_gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=gauge_val,
-                    number={'font': {'size': 50, 'color': '#4fc3f7'}},
+                    number={'font': {'size': 50, 'color': '#333'}},
                     gauge={
-                        'axis': {'range': [0, 100], 'tickcolor': '#555'},
-                        'bar': {'color': '#00e5ff'},
-                        'bgcolor': '#1a1a2e',
+                        'axis': {'range': [0, 100], 'tickcolor': '#666'},
+                        'bar': {'color': '#1565c0'},
                         'steps': [
-                            {'range': [0, 25], 'color': '#b71c1c'},
-                            {'range': [25, 50], 'color': '#e65100'},
-                            {'range': [50, 75], 'color': '#1b5e20'},
-                            {'range': [75, 100], 'color': '#0d47a1'},
+                            {'range': [0, 25], 'color': '#e53935'},
+                            {'range': [25, 50], 'color': '#ff9800'},
+                            {'range': [50, 75], 'color': '#4caf50'},
+                            {'range': [75, 100], 'color': '#1565c0'},
                         ],
                     }
                 ))
                 fig_gauge.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=10),
-                                       paper_bgcolor='rgba(0,0,0,0)', font_color='white')
+                                       paper_bgcolor='white')
                 st.plotly_chart(fig_gauge, use_container_width=True)
                 
                 st.markdown("**Sentiment Özeti:**")
@@ -343,18 +320,16 @@ if page == "🏠 Ana Sayfa":
             
             fig_mini = go.Figure(go.Scatter(
                 y=bist_df['Close'].tolist()[-30:],
-                mode='lines', line=dict(color='#00e5ff', width=2),
-                fill='tozeroy', fillcolor='rgba(0,229,255,0.1)'
+                mode='lines', line=dict(color='#1565c0', width=2.5),
+                fill='tozeroy', fillcolor='rgba(21,101,192,0.1)'
             ))
             fig_mini.update_layout(height=200, margin=dict(l=0, r=0, t=0, b=0),
                                   xaxis=dict(visible=False), yaxis=dict(visible=False),
-                                  paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                                  paper_bgcolor='white', plot_bgcolor='white')
             st.plotly_chart(fig_mini, use_container_width=True)
     
-    # Altın & Döviz Hızlı Bakış
     st.markdown("---")
     st.subheader("💰 Altın & Döviz")
-    
     gold_cols = st.columns(4)
     commodities_quick = ['💵 USD/TRY', '💶 EUR/TRY', '🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)']
     for i, name in enumerate(commodities_quick):
@@ -364,8 +339,7 @@ if page == "🏠 Ana Sayfa":
                 p = float(df_c['Close'].iloc[-1])
                 prev_p = float(df_c['Close'].iloc[-2]) if len(df_c) > 1 else p
                 chg = ((p - prev_p) / prev_p) * 100
-                st.metric(name.split(' ')[0] + " " + name.split('(')[-1].replace(')', '').replace(' ', ''),
-                         f"{p:,.2f}", f"{chg:+.2f}%")
+                st.metric(name, f"{p:,.2f}", f"{chg:+.2f}%")
     
     st.markdown("---")
     st.subheader("⚡ BIST30 Top 5")
@@ -378,7 +352,6 @@ if page == "🏠 Ana Sayfa":
                 st.metric(row['Sembol'], f"₺{row['Fiyat']:.0f}", f"S:{row['Sentiment']}")
 
 
-# ═══ HİSSE ANALİZ ═══
 elif page == "📊 Hisse Analiz":
     st.title("📊 Hisse Sentiment Analizi")
     
@@ -406,13 +379,14 @@ elif page == "📊 Hisse Analiz":
                                    vertical_spacing=0.08, row_heights=[0.65, 0.35])
                 x = list(range(len(result['prices'])))
                 fig.add_trace(go.Scatter(x=x, y=result['prices'], name='Fiyat',
-                                        line=dict(color='#00e676', width=2.5)), row=1, col=1)
-                colors = ['#00b0ff' if v >= 0 else '#ff1744' for v in result['bars']]
+                                        line=dict(color='#2e7d32', width=2.5)), row=1, col=1)
+                colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['bars']]
                 fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment',
-                                    marker_color=colors, opacity=0.85), row=2, col=1)
+                                    marker_color=colors, opacity=0.9), row=2, col=1)
                 fig.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
-                                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                                 font_color='white')
+                                 paper_bgcolor='white', plot_bgcolor='white')
+                fig.update_xaxes(showgrid=False)
+                fig.update_yaxes(showgrid=True, gridcolor='#eee')
                 st.plotly_chart(fig, use_container_width=True)
             
             with right_chart:
@@ -420,14 +394,15 @@ elif page == "📊 Hisse Analiz":
                 fig2 = go.Figure()
                 x2 = list(range(len(result['prices'])))
                 fig2.add_trace(go.Scatter(x=x2, y=result['prices'], name='Fiyat',
-                                         line=dict(color='#00e676', width=2.5)))
+                                         line=dict(color='#2e7d32', width=2.5)))
                 fig2.add_trace(go.Scatter(x=x2, y=[result['stp']]*len(x2), name='STP',
-                                         line=dict(color='#ffd600', width=1.5, dash='dash')))
+                                         line=dict(color='#e65100', width=2, dash='dash')))
                 fig2.add_trace(go.Scatter(x=x2, y=[result['hstp']]*len(x2), name='HSTP',
-                                         line=dict(color='#ff6d00', width=1.5, dash='dot')))
+                                         line=dict(color='#b71c1c', width=2, dash='dot')))
                 fig2.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
-                                  paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                                  font_color='white')
+                                  paper_bgcolor='white', plot_bgcolor='white')
+                fig2.update_xaxes(showgrid=False)
+                fig2.update_yaxes(showgrid=True, gridcolor='#eee')
                 st.plotly_chart(fig2, use_container_width=True)
             
             with st.expander("📋 Detaylı Göstergeler"):
@@ -442,7 +417,6 @@ elif page == "📊 Hisse Analiz":
                 d4.write(f"**Osilatör:** {result['oscillator']:.2f}")
 
 
-# ═══ KRİPTO ANALİZ ═══
 elif page == "🪙 Kripto Analiz":
     st.title("🪙 Kripto Sentiment Analizi")
     
@@ -471,13 +445,14 @@ elif page == "🪙 Kripto Analiz":
                                    vertical_spacing=0.08, row_heights=[0.65, 0.35])
                 x = list(range(len(result['prices'])))
                 fig.add_trace(go.Scatter(x=x, y=result['prices'], name='Fiyat',
-                                        line=dict(color='#00e676', width=2.5)), row=1, col=1)
-                colors = ['#00b0ff' if v >= 0 else '#ff1744' for v in result['bars']]
+                                        line=dict(color='#2e7d32', width=2.5)), row=1, col=1)
+                colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['bars']]
                 fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment',
-                                    marker_color=colors, opacity=0.85), row=2, col=1)
+                                    marker_color=colors, opacity=0.9), row=2, col=1)
                 fig.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
-                                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                                 font_color='white')
+                                 paper_bgcolor='white', plot_bgcolor='white')
+                fig.update_xaxes(showgrid=False)
+                fig.update_yaxes(showgrid=True, gridcolor='#eee')
                 st.plotly_chart(fig, use_container_width=True)
             
             with right_chart:
@@ -485,24 +460,23 @@ elif page == "🪙 Kripto Analiz":
                 fig2 = go.Figure()
                 x2 = list(range(len(result['prices'])))
                 fig2.add_trace(go.Scatter(x=x2, y=result['prices'], name='Fiyat',
-                                         line=dict(color='#00e676', width=2.5)))
+                                         line=dict(color='#2e7d32', width=2.5)))
                 fig2.add_trace(go.Scatter(x=x2, y=[result['stp']]*len(x2), name='STP',
-                                         line=dict(color='#ffd600', width=1.5, dash='dash')))
+                                         line=dict(color='#e65100', width=2, dash='dash')))
                 fig2.add_trace(go.Scatter(x=x2, y=[result['hstp']]*len(x2), name='HSTP',
-                                         line=dict(color='#ff6d00', width=1.5, dash='dot')))
+                                         line=dict(color='#b71c1c', width=2, dash='dot')))
                 fig2.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
-                                  paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                                  font_color='white')
+                                  paper_bgcolor='white', plot_bgcolor='white')
+                fig2.update_xaxes(showgrid=False)
+                fig2.update_yaxes(showgrid=True, gridcolor='#eee')
                 st.plotly_chart(fig2, use_container_width=True)
     else:
         st.error(f"'{symbol}' için veri çekilemedi!")
 
 
-# ═══ ALTIN & DÖVİZ ═══
 elif page == "🥇 Altın & Döviz":
     st.title("🥇 Altın, Gümüş & Döviz Kurları")
     
-    # Döviz Kurları
     st.subheader("💱 Döviz Kurları")
     doviz_cols = st.columns(4)
     doviz_list = ['💵 USD/TRY', '💶 EUR/TRY', '🇨🇭 CHF/TRY', '🇬🇧 GBP/TRY']
@@ -516,8 +490,6 @@ elif page == "🥇 Altın & Döviz":
                 st.metric(name, f"₺{p:,.4f}", f"{chg:+.2f}%")
     
     st.markdown("---")
-    
-    # Altın & Gümüş
     st.subheader("🥇 Kıymetli Madenler")
     metal_cols = st.columns(2)
     metals = ['🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)']
@@ -528,12 +500,9 @@ elif page == "🥇 Altın & Döviz":
                 p = float(df_m['Close'].iloc[-1])
                 prev_p = float(df_m['Close'].iloc[-2]) if len(df_m) > 1 else p
                 chg = ((p - prev_p) / prev_p) * 100
-                currency_sym = "$" if "USD" in name else "₺"
-                st.metric(name, f"{currency_sym}{p:,.2f}", f"{chg:+.2f}%")
+                st.metric(name, f"${p:,.2f}", f"{chg:+.2f}%")
     
     st.markdown("---")
-    
-    # Detaylı analiz
     st.subheader("📊 Detaylı Analiz")
     selected = st.selectbox("Seçin:", list(COMMODITIES.keys()))
     df_sel = get_commodity_data(COMMODITIES[selected])
@@ -551,17 +520,17 @@ elif page == "🥇 Altın & Döviz":
                                vertical_spacing=0.08, row_heights=[0.65, 0.35])
             x = list(range(len(result['prices'])))
             fig.add_trace(go.Scatter(x=x, y=result['prices'], name='Fiyat',
-                                    line=dict(color='#ffd600', width=2.5)), row=1, col=1)
-            colors = ['#00b0ff' if v >= 0 else '#ff1744' for v in result['bars']]
+                                    line=dict(color='#f9a825', width=2.5)), row=1, col=1)
+            colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['bars']]
             fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment',
-                                marker_color=colors, opacity=0.85), row=2, col=1)
+                                marker_color=colors, opacity=0.9), row=2, col=1)
             fig.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
-                             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                             font_color='white')
+                             paper_bgcolor='white', plot_bgcolor='white')
+            fig.update_xaxes(showgrid=False)
+            fig.update_yaxes(showgrid=True, gridcolor='#eee')
             st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ HİSSE TABLOSU ═══
 elif page == "📋 Hisse Tablosu":
     st.title("📋 Hisse Tablosu — Tüm BIST")
     st.info("⏳ Tüm hisseler analiz ediliyor...")
@@ -578,20 +547,20 @@ elif page == "📋 Hisse Tablosu":
         ascending = sort_order == 'En Düşük'
         sorted_df = all_scores.sort_values(sort_by, ascending=ascending).reset_index(drop=True)
         sorted_df.index = sorted_df.index + 1
-        
         st.dataframe(sorted_df, use_container_width=True, height=500)
         
         st.markdown("---")
         fig = go.Figure(go.Bar(
             x=sorted_df['Sembol'], y=sorted_df['Sentiment'],
-            marker_color=['#00b0ff' if v >= 0 else '#ff1744' for v in sorted_df['Sentiment']],
+            marker_color=['#1565c0' if v >= 0 else '#c62828' for v in sorted_df['Sentiment']],
         ))
-        fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                         font_color='white', margin=dict(l=40, r=10, t=10, b=40))
+        fig.update_layout(height=300, paper_bgcolor='white', plot_bgcolor='white',
+                         margin=dict(l=40, r=10, t=10, b=40))
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=True, gridcolor='#eee')
         st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ AKILLI FİLTRE ═══
 elif page == "🔍 Akıllı Filtre":
     st.title("🔍 Akıllı Filtre")
     
@@ -649,17 +618,17 @@ elif page == "🔍 Akıllı Filtre":
             
             fig = go.Figure(go.Bar(
                 x=filtered['Sembol'], y=filtered['Sentiment'],
-                marker_color=['#00b0ff' if v >= 0 else '#ff1744' for v in filtered['Sentiment']],
+                marker_color=['#1565c0' if v >= 0 else '#c62828' for v in filtered['Sentiment']],
                 text=filtered['Sinyal'], textposition='outside'
             ))
-            fig.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                             font_color='white')
+            fig.update_layout(height=350, paper_bgcolor='white', plot_bgcolor='white')
+            fig.update_xaxes(showgrid=False)
+            fig.update_yaxes(showgrid=True, gridcolor='#eee')
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("Bu filtreye uyan hisse bulunamadı.")
 
 
-# ═══ GÜNLÜK SENTİMENT ═══
 elif page == "📈 Günlük Sentiment":
     st.title("📈 Günlük Sentiment — BIST100")
     
@@ -680,27 +649,28 @@ elif page == "📈 Günlük Sentiment":
                                specs=[[{"secondary_y": True}], [{"secondary_y": False}]])
             
             x = list(range(len(result['bars'])))
-            colors = ['#00b0ff' if v >= 0 else '#ff1744' for v in result['bars']]
+            colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['bars']]
             fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment',
-                                marker_color=colors, opacity=0.85),
+                                marker_color=colors, opacity=0.9),
                          row=1, col=1, secondary_y=False)
             fig.add_trace(go.Scatter(x=x, y=result['prices'], name='BIST100',
-                                    line=dict(color='#00e676', width=2.5)),
+                                    line=dict(color='#2e7d32', width=2.5)),
                          row=1, col=1, secondary_y=True)
             
-            mom_colors = ['#00b0ff' if v >= 0 else '#ff1744' for v in result['mom_bars']]
+            mom_colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['mom_bars']]
             fig.add_trace(go.Bar(x=x, y=result['mom_bars'], name='Momentum',
                                 marker_color=mom_colors, opacity=0.7), row=2, col=1)
             
             fig.update_layout(height=500, showlegend=True,
-                             legend=dict(orientation='h', y=-0.1, font_color='white'),
-                             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                             font_color='white', margin=dict(l=50, r=20, t=10, b=40))
+                             legend=dict(orientation='h', y=-0.1),
+                             paper_bgcolor='white', plot_bgcolor='white',
+                             margin=dict(l=50, r=20, t=10, b=40))
+            fig.update_xaxes(showgrid=False)
+            fig.update_yaxes(showgrid=True, gridcolor='#eee')
             st.plotly_chart(fig, use_container_width=True)
             st.caption("🔵 Sentiment | 🟢 BIST100 | 🔴 Momentum")
 
 
-# ═══ OSİLATÖR ═══
 elif page == "🔄 Osilatör":
     st.title("🔄 Osilatör — BIST100")
     
@@ -717,23 +687,23 @@ elif page == "🔄 Osilatör":
         
         current_osc = osc_vals[-1] if osc_vals else 0
         st.metric("Osilatör Değeri", f"{current_osc:.2f}")
-        
         st.markdown("---")
         
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=x, y=price_vals, name='BIST100',
-                                line=dict(color='#00b0ff', width=2.5)), secondary_y=False)
-        osc_colors = ['#00e676' if v >= 0 else '#ff1744' for v in osc_vals]
+                                line=dict(color='#1565c0', width=2.5)), secondary_y=False)
+        osc_colors = ['#2e7d32' if v >= 0 else '#c62828' for v in osc_vals]
         fig.add_trace(go.Bar(x=x, y=osc_vals, name='Osilatör',
-                            marker_color=osc_colors, opacity=0.6), secondary_y=True)
+                            marker_color=osc_colors, opacity=0.7), secondary_y=True)
         fig.update_layout(height=450, showlegend=True,
-                         legend=dict(orientation='h', y=-0.1, font_color='white'),
-                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                         font_color='white')
+                         legend=dict(orientation='h', y=-0.1),
+                         paper_bgcolor='white', plot_bgcolor='white')
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=True, gridcolor='#eee')
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("🔵 BIST100 | 🟢🔴 Osilatör")
 
 
-# ═══ BIST30 İLK 10 ═══
 elif page == "📋 BIST30 İlk 10":
     st.title("📋 BIST30 — En Güçlü 10 Hisse")
     st.info("⏳ Veriler çekiliyor...")
@@ -746,15 +716,15 @@ elif page == "📋 BIST30 İlk 10":
         
         fig = go.Figure(go.Bar(
             x=top10['Sembol'], y=top10['Sentiment'],
-            marker_color=['#00b0ff' if v >= 0 else '#ff1744' for v in top10['Sentiment']],
+            marker_color=['#1565c0' if v >= 0 else '#c62828' for v in top10['Sentiment']],
             text=top10['Sinyal'], textposition='outside'
         ))
-        fig.update_layout(height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                         font_color='white')
+        fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=True, gridcolor='#eee')
         st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ BIST30 SON 10 ═══
 elif page == "📋 BIST30 Son 10":
     st.title("📋 BIST30 — En Zayıf 10 Hisse")
     st.info("⏳ Veriler çekiliyor...")
@@ -767,9 +737,10 @@ elif page == "📋 BIST30 Son 10":
         
         fig = go.Figure(go.Bar(
             x=bottom10['Sembol'], y=bottom10['Sentiment'],
-            marker_color=['#00b0ff' if v >= 0 else '#ff1744' for v in bottom10['Sentiment']],
+            marker_color=['#1565c0' if v >= 0 else '#c62828' for v in bottom10['Sentiment']],
             text=bottom10['Sinyal'], textposition='outside'
         ))
-        fig.update_layout(height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(26,26,46,0.5)',
-                         font_color='white')
+        fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
+        fig.update_xaxes(showgrid=False)
+        fig.update_yaxes(showgrid=True, gridcolor='#eee')
         st.plotly_chart(fig, use_container_width=True)
