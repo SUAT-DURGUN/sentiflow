@@ -14,6 +14,20 @@ from datetime import datetime
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
 
+# Tema seçimi
+theme = st.sidebar.selectbox("🎨 Tema", ["🌙 Karanlık", "☀️ Açık"], index=0)
+
+if theme == "🌙 Karanlık":
+    bg_color = '#0a0a1a'
+    card_bg = 'rgba(26,26,46,0.5)'
+    text_color = 'white'
+    st.markdown("""&lt;style>.stApp{background:linear-gradient(180deg,#0a0a1a,#1a1a2e);color:#fff}
+    .stSidebar{background:linear-gradient(180deg,#16213e,#0f3460)}&lt;/style>""", unsafe_allow_html=True)
+else:
+    bg_color = '#ffffff'
+    card_bg = '#f8f9fa'
+    text_color = 'black'
+
 # ════════════════════════════
 # CUSTOM CSS (CANLI RENKLER)
 # ════════════════════════════
@@ -64,7 +78,6 @@ CRYPTO_EXTRA = ['NETX/USDT', 'KAS/USDT', 'CFX/USDT']
 COMMODITIES = {
     '🥇 Altın (Ons/USD)': 'GC=F',
     '🥈 Gümüş (Ons/USD)': 'SI=F',
-    '🥇 Gram Altın (TRY)': 'GOLDTRY=X',
     '💵 USD/TRY': 'USDTRY=X',
     '💶 EUR/TRY': 'EURTRY=X',
     '🇨🇭 CHF/TRY': 'CHFTRY=X',
@@ -506,8 +519,8 @@ elif page == "🥇 Altın & Döviz":
     
     # Altın & Gümüş
     st.subheader("🥇 Kıymetli Madenler")
-    metal_cols = st.columns(3)
-    metals = ['🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)', '🥇 Gram Altın (TRY)']
+    metal_cols = st.columns(2)
+        metals = ['🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)']
     for i, name in enumerate(metals):
         with metal_cols[i]:
             df_m = get_commodity_data(COMMODITIES[name])
