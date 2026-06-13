@@ -1,5 +1,5 @@
 """
-SentiFlow v1.3 — Profesyonel Sentiment Analiz Platformu
+SentiFlow v1.4 — Akıllı Filtre + Hisse Tablosu
 """
 
 import streamlit as st
@@ -60,17 +60,20 @@ CRYPTO_EXTRA = ['NETX/USDT', 'KAS/USDT', 'CFX/USDT']
 # VERİ ÇEKME
 # ════════════════════════════
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)
 def get_bist_data(symbol):
-    yahoo = ALL_BIST.get(symbol, f"{symbol}.IS")
-    df = yf.Ticker(yahoo).history(period="6mo", interval="1d")
-    return df
+    try:
+        yahoo = ALL_BIST.get(symbol, f"{symbol}.IS")
+        df = yf.Ticker(yahoo).history(period="3mo", interval="1d")
+        return df
+    except:
+        return pd.DataFrame()
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)
 def get_crypto_data(symbol):
     try:
         ex = ccxt.binance({'enableRateLimit': True})
-        ohlcv = ex.fetch_ohlcv(symbol, '1d', limit=180)
+        ohlcv = ex.fetch_ohlcv(symbol, '1d', limit=90)
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         df.set_index('timestamp', inplace=True)
@@ -79,7 +82,7 @@ def get_crypto_data(symbol):
         pass
     try:
         ex = ccxt.mexc({'enableRateLimit': True})
-        ohlcv = ex.fetch_ohlcv(symbol, '1d', limit=180)
+        ohlcv = ex.fetch_ohlcv(symbol, '1d', limit=90)
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         df.set_index('timestamp', inplace=True)
@@ -88,10 +91,13 @@ def get_crypto_data(symbol):
         pass
     return pd.DataFrame()
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)
 def get_bist100_index():
-    df = yf.Ticker("XU100.IS").history(period="6mo", interval="1d")
-    return df
+    try:
+        df = yf.Ticker("XU100.IS").history(period="3mo", interval="1d")
+        return df
+    except:
+        return pd.DataFrame()
 
 
 # ════════════════════════════
@@ -110,8 +116,6 @@ def calc_sentiment(df):
     rsi_series = momentum.RSIIndicator(close, window=14).rsi()
     macd_ind = trend.MACD(close)
     macd_hist = macd_ind.macd_diff()
-    macd_line = macd_ind.macd()
-    macd_signal = macd_ind.macd_signal()
     stoch = momentum.StochasticOscillator(high, low, close).stoch()
     
     rsi_val = float(rsi_series.iloc[-1])
@@ -121,7 +125,6 @@ def calc_sentiment(df):
     ema21 = float(close.ewm(span=21).mean().iloc[-1])
     ema50 = float(close.ewm(span=50).mean().iloc[-1])
     
-    # Skor
     score = 0
     if rsi_val < 30: score += 40
     elif rsi_val > 70: score -= 40
@@ -140,7 +143,6 @@ def calc_sentiment(df):
     elif score > -30: signal = "🟡 Satış"
     else: signal = "🔴 Güçlü Satış"
     
-    # Günlük sentiment barları
     bars = []
     mom_bars = []
     for i in range(-min(60, len(close)-14), 0):
@@ -158,12 +160,12 @@ def calc_sentiment(df):
             bars.append(0)
             mom_bars.append(0)
     
-    # Osilatör
     oscillator = ((rsi_val - 50) / 50) * 3
-    
-    # STP (basit destek/direnç)
     stp = float(close.rolling(20).mean().iloc[-1])
     hstp = float(close.rolling(50).mean().iloc[-1])
+    
+    # Trend yönü (son 5 günlük)
+    trend_dir = "yukari" if mom > 1 else "asagi" if mom < -1 else "yatay"
     
     return {
         'price': price, 'score': score, 'signal': signal,
@@ -173,9 +175,38 @@ def calc_sentiment(df):
         'oscillator': round(oscillator, 2),
         'stp': round(stp, 2), 'hstp': round(hstp, 2),
         'ema9': ema9, 'ema21': ema21, 'ema50': ema50,
+        'trend': trend_dir,
     }
 
 
+@st.cache_data(ttl=600)
+def get_all_bist_scores():
+    """Tüm BIST hisselerinin sentiment skorları."""
+    results = []
+    for symbol in ALL_BIST.keys():
+        try:
+            df = get_bist_data(symbol)
+            result = calc_sentiment(df)
+            if result:
+                results.append({
+                    'Sembol': symbol,
+                    'Fiyat': round(result['price'], 2),
+                    'Sentiment': result['score'],
+                    'RSI': round(result['rsi'], 1),
+                    'Stoch': round(result['stoch'], 1),
+                    'Momentum%': round(result['momentum'], 2),
+                    'Osilatör': result['oscillator'],
+                    'Sinyal': result['signal'],
+                    'Trend': result['trend'],
+                    'STP': result['stp'],
+                    'HSTP': result['hstp'],
+                })
+        except:
+            continue
+    return pd.DataFrame(results)
+
+
+@st.cache_data(ttl=600)
 def get_bist30_scores():
     results = []
     for symbol in BIST30.keys():
@@ -188,8 +219,9 @@ def get_bist30_scores():
                     'Fiyat': round(result['price'], 2),
                     'Sentiment': result['score'],
                     'RSI': round(result['rsi'], 1),
-                    'Momentum': round(result['momentum'], 2),
+                    'Momentum%': round(result['momentum'], 2),
                     'Sinyal': result['signal'],
+                    'Trend': result['trend'],
                 })
         except:
             continue
@@ -209,6 +241,8 @@ with st.sidebar:
         "🏠 Ana Sayfa",
         "📊 Hisse Analiz",
         "🪙 Kripto Analiz",
+        "📋 Hisse Tablosu",
+        "🔍 Akıllı Filtre",
         "📈 Günlük Sentiment",
         "🔄 Osilatör",
         "📋 BIST30 İlk 10",
@@ -216,7 +250,7 @@ with st.sidebar:
     ])
     
     st.markdown("---")
-    st.caption(f"v1.3 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    st.caption(f"v1.4 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 
 # ════════════════════════════
@@ -256,7 +290,6 @@ if page == "🏠 Ana Sayfa":
                 fig_gauge.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=10))
                 st.plotly_chart(fig_gauge, use_container_width=True)
                 
-                # Sentiment Özeti
                 st.markdown("**Sentiment Özeti:**")
                 s1, s2, s3 = st.columns(3)
                 s1.metric("Günlük", f"{bist_result['score']}")
@@ -272,7 +305,6 @@ if page == "🏠 Ana Sayfa":
             
             st.metric("BIST100", f"{price:,.2f}", f"{change:+.2f}%")
             
-            # Mini grafik
             fig_mini = go.Figure(go.Scatter(
                 y=bist_df['Close'].tolist()[-30:],
                 mode='lines', line=dict(color='#00c853' if change >= 0 else '#ff1744', width=2),
@@ -291,7 +323,6 @@ if page == "🏠 Ana Sayfa":
         cols = st.columns(5)
         for i, (_, row) in enumerate(top5.iterrows()):
             with cols[i]:
-                color = "normal" if row['Sentiment'] > 0 else "inverse"
                 st.metric(row['Sembol'], f"₺{row['Fiyat']:.0f}", f"S:{row['Sentiment']}")
 
 
@@ -316,22 +347,18 @@ elif page == "📊 Hisse Analiz":
             
             st.markdown("---")
             
-            # Çift grafik (Sentiment Algo gibi)
             left_chart, right_chart = st.columns(2)
             
             with left_chart:
                 st.caption(f"📊 {symbol} — Sentiment + Fiyat")
                 fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                                    vertical_spacing=0.08, row_heights=[0.65, 0.35])
-                
                 x = list(range(len(result['prices'])))
                 fig.add_trace(go.Scatter(x=x, y=result['prices'], name='Fiyat',
                                         line=dict(color='#00c853', width=2)), row=1, col=1)
-                
                 colors = ['#1e88e5' if v >= 0 else '#ff1744' for v in result['bars']]
                 fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment',
                                     marker_color=colors, opacity=0.8), row=2, col=1)
-                
                 fig.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
                                  paper_bgcolor='white', plot_bgcolor='#fafafa')
                 st.plotly_chart(fig, use_container_width=True)
@@ -339,24 +366,19 @@ elif page == "📊 Hisse Analiz":
             with right_chart:
                 st.caption(f"📈 {symbol} — Fiyat + STP/HSTP")
                 fig2 = go.Figure()
-                
                 x2 = list(range(len(result['prices'])))
                 fig2.add_trace(go.Scatter(x=x2, y=result['prices'], name='Fiyat',
                                          line=dict(color='#00c853', width=2)))
-                # STP çizgisi (20 günlük ortalama)
                 stp_line = [result['stp']] * len(x2)
                 fig2.add_trace(go.Scatter(x=x2, y=stp_line, name='STP',
                                          line=dict(color='#ff9800', width=1.5, dash='dash')))
-                # HSTP çizgisi (50 günlük ortalama)
                 hstp_line = [result['hstp']] * len(x2)
                 fig2.add_trace(go.Scatter(x=x2, y=hstp_line, name='HSTP',
                                          line=dict(color='#f44336', width=1.5, dash='dot')))
-                
                 fig2.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
                                   paper_bgcolor='white', plot_bgcolor='#fafafa')
                 st.plotly_chart(fig2, use_container_width=True)
             
-            # Detaylar
             with st.expander("📋 Detaylı Göstergeler"):
                 d1, d2, d3, d4 = st.columns(4)
                 d1.write(f"**EMA 9:** ₺{result['ema9']:.2f}")
@@ -392,12 +414,10 @@ elif page == "🪙 Kripto Analiz":
             st.markdown("---")
             
             left_chart, right_chart = st.columns(2)
-            
             with left_chart:
                 st.caption(f"📊 {symbol} — Sentiment + Fiyat")
                 fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                                    vertical_spacing=0.08, row_heights=[0.65, 0.35])
-                
                 x = list(range(len(result['prices'])))
                 fig.add_trace(go.Scatter(x=x, y=result['prices'], name='Fiyat',
                                         line=dict(color='#00c853', width=2)), row=1, col=1)
@@ -414,17 +434,130 @@ elif page == "🪙 Kripto Analiz":
                 x2 = list(range(len(result['prices'])))
                 fig2.add_trace(go.Scatter(x=x2, y=result['prices'], name='Fiyat',
                                          line=dict(color='#00c853', width=2)))
-                stp_line = [result['stp']] * len(x2)
-                fig2.add_trace(go.Scatter(x=x2, y=stp_line, name='STP',
+                fig2.add_trace(go.Scatter(x=x2, y=[result['stp']]*len(x2), name='STP',
                                          line=dict(color='#ff9800', width=1.5, dash='dash')))
-                hstp_line = [result['hstp']] * len(x2)
-                fig2.add_trace(go.Scatter(x=x2, y=hstp_line, name='HSTP',
+                fig2.add_trace(go.Scatter(x=x2, y=[result['hstp']]*len(x2), name='HSTP',
                                          line=dict(color='#f44336', width=1.5, dash='dot')))
                 fig2.update_layout(height=400, showlegend=True, margin=dict(l=40, r=10, t=10, b=30),
                                   paper_bgcolor='white', plot_bgcolor='#fafafa')
                 st.plotly_chart(fig2, use_container_width=True)
     else:
         st.error(f"'{symbol}' için veri çekilemedi!")
+
+
+# ═══ HİSSE TABLOSU ═══
+elif page == "📋 Hisse Tablosu":
+    st.title("📋 Hisse Tablosu — Tüm BIST")
+    st.info("⏳ Tüm hisseler analiz ediliyor... (ilk seferde 2-3 dakika)")
+    
+    all_scores = get_all_bist_scores()
+    
+    if not all_scores.empty:
+        # Filtre
+        filter_col1, filter_col2 = st.columns(2)
+        with filter_col1:
+            sort_by = st.selectbox("Sırala:", ['Sentiment', 'Momentum%', 'RSI', 'Fiyat'])
+        with filter_col2:
+            sort_order = st.radio("Sıra:", ['En Yüksek', 'En Düşük'], horizontal=True)
+        
+        ascending = sort_order == 'En Düşük'
+        sorted_df = all_scores.sort_values(sort_by, ascending=ascending).reset_index(drop=True)
+        sorted_df.index = sorted_df.index + 1
+        
+        st.dataframe(sorted_df, use_container_width=True, height=500)
+        
+        st.markdown("---")
+        st.subheader("📊 Sentiment Dağılımı")
+        
+        fig = go.Figure(go.Bar(
+            x=sorted_df['Sembol'], y=sorted_df['Sentiment'],
+            marker_color=['#1e88e5' if v >= 0 else '#ff1744' for v in sorted_df['Sentiment']],
+        ))
+        fig.update_layout(height=300, paper_bgcolor='white', plot_bgcolor='#fafafa',
+                         margin=dict(l=40, r=10, t=10, b=40))
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.error("Veriler çekilemedi")
+
+
+# ═══ AKILLI FİLTRE ═══
+elif page == "🔍 Akıllı Filtre":
+    st.title("🔍 Akıllı Filtre")
+    
+    all_scores = get_all_bist_scores()
+    
+    if not all_scores.empty:
+        filter_type = st.selectbox("Filtre Seçin:", [
+            "🚀 Potansiyel Kalkışlar",
+            "💪 Mavide Güçlenenler (Güçlü Alış)",
+            "⭐ Sentiment Güçlüler",
+            "📈 Yukarı Hareketlenenler",
+            "🔴 Potansiyel Düşüşler",
+            "📉 Kırmızıda Güçlenenler (Güçlü Satış)",
+            "😰 Sentiment Zayıflar",
+            "📉 Aşağı Hareketlenenler",
+            "⚪ Nötr Bölgede Olanlar",
+        ])
+        
+        st.markdown("---")
+        
+        if "Potansiyel Kalkışlar" in filter_type:
+            # Sentiment negatiften pozitife dönmeye başlayanlar
+            filtered = all_scores[(all_scores['Sentiment'] > -10) & (all_scores['Sentiment'] < 20) & (all_scores['Momentum%'] > 0)]
+            st.caption("📌 Sentiment negatiften pozitife dönmeye başlayan, momentum pozitif hisseler")
+        
+        elif "Mavide Güçlenenler" in filter_type:
+            filtered = all_scores[all_scores['Sentiment'] > 30]
+            st.caption("📌 Sentiment skoru 30 üzerinde olan güçlü hisseler")
+        
+        elif "Sentiment Güçlüler" in filter_type:
+            filtered = all_scores.sort_values('Sentiment', ascending=False).head(10)
+            st.caption("📌 En yüksek sentiment skoruna sahip 10 hisse")
+        
+        elif "Yukarı Hareketlenenler" in filter_type:
+            filtered = all_scores[all_scores['Momentum%'] > 2]
+            st.caption("📌 Son 5 günde %2'den fazla yükselen hisseler")
+        
+        elif "Potansiyel Düşüşler" in filter_type:
+            filtered = all_scores[(all_scores['Sentiment'] > 0) & (all_scores['Momentum%'] < -1)]
+            st.caption("📌 Sentiment pozitif ama momentum düşmeye başlayan hisseler")
+        
+        elif "Kırmızıda Güçlenenler" in filter_type:
+            filtered = all_scores[all_scores['Sentiment'] < -30]
+            st.caption("📌 Sentiment skoru -30 altında olan zayıf hisseler")
+        
+        elif "Sentiment Zayıflar" in filter_type:
+            filtered = all_scores.sort_values('Sentiment', ascending=True).head(10)
+            st.caption("📌 En düşük sentiment skoruna sahip 10 hisse")
+        
+        elif "Aşağı Hareketlenenler" in filter_type:
+            filtered = all_scores[all_scores['Momentum%'] < -2]
+            st.caption("📌 Son 5 günde %2'den fazla düşen hisseler")
+        
+        elif "Nötr" in filter_type:
+            filtered = all_scores[(all_scores['Sentiment'] >= -10) & (all_scores['Sentiment'] <= 10)]
+            st.caption("📌 Sentiment -10 ile +10 arasında olan kararsız hisseler")
+        
+        else:
+            filtered = all_scores
+        
+        if not filtered.empty:
+            filtered = filtered.reset_index(drop=True)
+            filtered.index = filtered.index + 1
+            st.dataframe(filtered, use_container_width=True)
+            
+            st.markdown("---")
+            fig = go.Figure(go.Bar(
+                x=filtered['Sembol'], y=filtered['Sentiment'],
+                marker_color=['#1e88e5' if v >= 0 else '#ff1744' for v in filtered['Sentiment']],
+                text=filtered['Sinyal'], textposition='outside'
+            ))
+            fig.update_layout(height=350, paper_bgcolor='white', plot_bgcolor='#fafafa')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Bu filtreye uyan hisse bulunamadı.")
+    else:
+        st.error("Veriler çekilemedi")
 
 
 # ═══ GÜNLÜK SENTİMENT ═══
@@ -435,7 +568,6 @@ elif page == "📈 Günlük Sentiment":
     if not bist_df.empty:
         result = calc_sentiment(bist_df)
         if result:
-            # Bilgi kutusu
             i1, i2, i3, i4 = st.columns(4)
             i1.metric("Sentiment", f"{result['score']}")
             i2.metric("Momentum", f"{result['momentum']:.1f}%")
@@ -444,25 +576,19 @@ elif page == "📈 Günlük Sentiment":
             
             st.markdown("---")
             
-            # Ana grafik (Sentiment Algo tarzı)
             fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                                vertical_spacing=0.08, row_heights=[0.7, 0.3],
                                specs=[[{"secondary_y": True}], [{"secondary_y": False}]])
             
             x = list(range(len(result['bars'])))
-            
-            # Sentiment barları
             colors = ['#1e88e5' if v >= 0 else '#ff1744' for v in result['bars']]
             fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment',
                                 marker_color=colors, opacity=0.8),
                          row=1, col=1, secondary_y=False)
-            
-            # Fiyat çizgisi
             fig.add_trace(go.Scatter(x=x, y=result['prices'], name='BIST100',
                                     line=dict(color='#00c853', width=2.5)),
                          row=1, col=1, secondary_y=True)
             
-            # Momentum barları
             mom_colors = ['#1e88e5' if v >= 0 else '#ff1744' for v in result['mom_bars']]
             fig.add_trace(go.Bar(x=x, y=result['mom_bars'], name='Momentum',
                                 marker_color=mom_colors, opacity=0.7), row=2, col=1)
@@ -471,12 +597,7 @@ elif page == "📈 Günlük Sentiment":
                              legend=dict(orientation='h', y=-0.1),
                              paper_bgcolor='white', plot_bgcolor='#fafafa',
                              margin=dict(l=50, r=20, t=10, b=40))
-            fig.update_xaxes(showgrid=False)
-            fig.update_yaxes(showgrid=True, gridcolor='#f0f0f0')
-            
             st.plotly_chart(fig, use_container_width=True)
-            
-            # Lejant
             st.caption("🔵 Sentiment | 🟢 BIST100 Endeks | 🔴 Momentum")
 
 
@@ -488,47 +609,35 @@ elif page == "🔄 Osilatör":
     if not bist_df.empty:
         close = bist_df['Close']
         rsi_series = momentum.RSIIndicator(close, window=14).rsi()
-        
-        # Osilatör serisini hesapla
         oscillator_series = ((rsi_series - 50) / 50) * 3
         
-        # Son 60 gün
         period = min(60, len(close) - 14)
         osc_vals = [float(oscillator_series.iloc[i]) for i in range(-period, 0)]
         price_vals = [float(close.iloc[i]) for i in range(-period, 0)]
         x = list(range(len(osc_vals)))
         
-        # Bilgi
         current_osc = osc_vals[-1] if osc_vals else 0
         st.metric("Osilatör Değeri", f"{current_osc:.2f}")
         
         st.markdown("---")
         
-        # Grafik
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        
-        # Endeks çizgisi
         fig.add_trace(go.Scatter(x=x, y=price_vals, name='BIST100',
                                 line=dict(color='#1e88e5', width=2)), secondary_y=False)
-        
-        # Osilatör barları
         osc_colors = ['#00c853' if v >= 0 else '#ff1744' for v in osc_vals]
         fig.add_trace(go.Bar(x=x, y=osc_vals, name='Osilatör',
                             marker_color=osc_colors, opacity=0.6), secondary_y=True)
-        
         fig.update_layout(height=450, showlegend=True,
                          legend=dict(orientation='h', y=-0.1),
-                         paper_bgcolor='white', plot_bgcolor='#fafafa',
-                         margin=dict(l=50, r=50, t=10, b=40))
-        
+                         paper_bgcolor='white', plot_bgcolor='#fafafa')
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("🔵 BIST100 Endeks | 🟢🔴 Osilatör (pozitif = yükseliş, negatif = düşüş)")
+        st.caption("🔵 BIST100 Endeks | 🟢🔴 Osilatör")
 
 
 # ═══ BIST30 İLK 10 ═══
 elif page == "📋 BIST30 İlk 10":
     st.title("📋 BIST30 — En Güçlü 10 Hisse")
-    st.info("⏳ Veriler çekiliyor... (ilk seferde 1-2 dakika sürebilir)")
+    st.info("⏳ Veriler çekiliyor...")
     
     scores_df = get_bist30_scores()
     if not scores_df.empty:
@@ -537,7 +646,6 @@ elif page == "📋 BIST30 İlk 10":
         st.dataframe(top10, use_container_width=True)
         
         st.markdown("---")
-        st.subheader("📊 Sentiment Sıralaması")
         fig = go.Figure(go.Bar(
             x=top10['Sembol'], y=top10['Sentiment'],
             marker_color=['#1e88e5' if v >= 0 else '#ff1744' for v in top10['Sentiment']],
@@ -559,7 +667,6 @@ elif page == "📋 BIST30 Son 10":
         st.dataframe(bottom10, use_container_width=True)
         
         st.markdown("---")
-        st.subheader("📊 Sentiment Sıralaması")
         fig = go.Figure(go.Bar(
             x=bottom10['Sembol'], y=bottom10['Sentiment'],
             marker_color=['#1e88e5' if v >= 0 else '#ff1744' for v in bottom10['Sentiment']],
