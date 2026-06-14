@@ -309,7 +309,7 @@ if 'favorites' not in st.session_state:
     st.session_state.favorites = ['THYAO', 'ASELS', 'GARAN', 'BTC/USDT']
 
 with st.sidebar:
-    st.image("logo.png", width=70)
+    st.markdown("### 🌊 SentiFlow")
     st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
