@@ -310,12 +310,10 @@ if 'favorites' not in st.session_state:
 
 with st.sidebar:
     st.image("logo.png", width=70)
+    st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
-    st.markdown("---")
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-
 
 if page == "🏠 Ana Sayfa":
     st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><span style="font-size:40px">🌊</span><div><h1 style="margin:0;color:#1565c0">SentiFlow</h1><p style="margin:0;color:#666;font-size:14px">Piyasa Sentiment Analiz Platformu</p></div></div>', unsafe_allow_html=True)

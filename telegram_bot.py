@@ -156,6 +156,20 @@ def cmd_help():
     msg += "\n🌐 sentiflow.streamlit.app"
     send_telegram(msg)
 
+def check_alerts():
+    """Buyuk degisimler icin uyari gonder."""
+    alerts = []
+    for symbol in WATCHLIST_BIST:
+        r = calc_bist_signal(symbol)
+        if r and (r['change'] > 5 or r['change'] < -5):
+            alerts.append(r)
+    if alerts:
+        msg = "🚨 <b>UYARI! Buyuk Degisim!</b>\n\n"
+        for a in alerts:
+            msg += f"{'📈' if a['change']>0 else '📉'} <b>{a['name']}</b>: ₺{a['price']:.2f} ({a['change']:+.1f}%)\n"
+        msg += "\n🌐 sentiflow.streamlit.app"
+        send_telegram(msg)
+    return len(alerts)
 
 def handle_message(text):
     text = text.lower().strip()
@@ -190,9 +204,9 @@ if __name__ == "__main__":
                 if text:
                     print(f"Komut: {text}")
                     handle_message(text)
-            time.sleep(2)
-        except KeyboardInterrupt:
-            print("\nBot durduruldu.")
-            break
+                        time.sleep(2)
+            # Her 30 dakikada uyari kontrol
+            if int(time.time()) % 1800 < 5:
+                check_alerts()
         except:
             time.sleep(5)
