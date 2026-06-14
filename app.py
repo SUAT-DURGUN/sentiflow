@@ -309,7 +309,8 @@ if 'favorites' not in st.session_state:
     st.session_state.favorites = ['THYAO', 'ASELS', 'GARAN', 'BTC/USDT']
 
 with st.sidebar:
-    st.markdown('<div style="text-align:center"><span style="font-size:32px">🌊</span><h2 style="margin:5px 0 0;color:#1565c0">SentiFlow</h2><p style="color:#666;font-size:12px;margin:0">Piyasa Sentiment Analiz Platformu</p></div>', unsafe_allow_html=True)
+    st.image("logo.png", width=70)
+    st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
     page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
     st.markdown("---")
