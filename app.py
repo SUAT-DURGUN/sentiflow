@@ -309,7 +309,7 @@ with st.sidebar:
     st.caption("Piyasa Sentiment Analiz Platformu")
     st.markdown("---")
     
-        page = st.radio("📍 Menü", [
+ page = st.radio("📍 Menü", [
         "🏠 Ana Sayfa",
         "📊 Hisse Analiz",
         "🪙 Kripto Analiz",
@@ -325,8 +325,8 @@ with st.sidebar:
         "📋 BIST30 Son 10",
     ])
     
-    st.markdown("---")
-    st.caption(f"v2.0 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+st.markdown("---")
+st.caption(f"v2.0 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 
 # ════════════════════════════
