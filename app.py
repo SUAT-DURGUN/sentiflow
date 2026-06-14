@@ -15,14 +15,6 @@ import requests
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
 
-st.markdown("""&lt;style>
-.block-container {padding: 1rem 1rem !important;}
-@media (max-width: 768px) {
-    .block-container {padding: 0.5rem !important;}
-    h1 {font-size: 1.5rem !important;}
-    h2 {font-size: 1.2rem !important;}
-}
-&lt;/style>""", unsafe_allow_html=True)
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
