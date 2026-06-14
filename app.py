@@ -1,6 +1,5 @@
 """
-SentiFlow v3.0 — Tam Profesyonel Platform
-Logo + Favoriler + Kripto Top10 + Sinyal Merkezi
+SentiFlow v3.1 — Tam Profesyonel Platform
 """
 
 import streamlit as st
@@ -13,26 +12,17 @@ from ta import momentum, trend
 import ccxt
 from datetime import datetime
 import requests
-from xml.etree import ElementTree
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
 
-# Mobil uyumluluk CSS
-st.markdown("""<meta name="viewport" content="width=device-width, initial-scale=1.0">
-&lt;style>
-    .block-container {padding: 1rem 1rem !important;}
-    @media (max-width: 768px) {
-        .block-container {padding: 0.5rem !important;}
-        h1 {font-size: 1.5rem !important;}
-        h2 {font-size: 1.2rem !important;}
-        [data-testid="stMetric"] {padding: 8px !important;}
-        [data-testid="stMetricValue"] {font-size: 18px !important;}
-    }
+st.markdown("""&lt;style>
+.block-container {padding: 1rem 1rem !important;}
+@media (max-width: 768px) {
+    .block-container {padding: 0.5rem !important;}
+    h1 {font-size: 1.5rem !important;}
+    h2 {font-size: 1.2rem !important;}
+}
 &lt;/style>""", unsafe_allow_html=True)
-
-# ════════════════════════════
-# VERİLER
-# ════════════════════════════
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
@@ -84,18 +74,14 @@ CRYPTO_BINANCE = [
 CRYPTO_EXTRA = ['NETX/USDT', 'KAS/USDT', 'CFX/USDT']
 
 COMMODITIES = {
-    '🥇 Altın (Ons/USD)': 'GC=F',
-    '🥈 Gümüş (Ons/USD)': 'SI=F',
+    '🥇 Altin (Ons/USD)': 'GC=F',
+    '🥈 Gumus (Ons/USD)': 'SI=F',
     '💵 USD/TRY': 'USDTRY=X',
     '💶 EUR/TRY': 'EURTRY=X',
     '🇨🇭 CHF/TRY': 'CHFTRY=X',
     '🇬🇧 GBP/TRY': 'GBPTRY=X',
 }
 
-
-# ════════════════════════════
-# VERİ ÇEKME
-# ════════════════════════════
 
 @st.cache_data(ttl=600)
 def get_stock_data(symbol):
@@ -104,6 +90,7 @@ def get_stock_data(symbol):
     except:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_bist_data(symbol):
     try:
@@ -111,6 +98,7 @@ def get_bist_data(symbol):
         return yf.Ticker(yahoo).history(period="3mo", interval="1d")
     except:
         return pd.DataFrame()
+
 
 @st.cache_data(ttl=600)
 def get_crypto_data(symbol):
@@ -134,12 +122,14 @@ def get_crypto_data(symbol):
         pass
     return pd.DataFrame()
 
+
 @st.cache_data(ttl=600)
 def get_bist100_index():
     try:
         return yf.Ticker("XU100.IS").history(period="3mo", interval="1d")
     except:
         return pd.DataFrame()
+
 
 @st.cache_data(ttl=600)
 def get_bist30_index():
@@ -148,107 +138,39 @@ def get_bist30_index():
     except:
         return pd.DataFrame()
 
+
 @st.cache_data(ttl=300)
 def get_kap_news():
-    """Güncel piyasa haberleri."""
-    news = [
-        {'symbol': 'BIST100', 'title': 'BIST100 endeksi güne yükselişle başladı', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'THYAO', 'title': 'Türk Hava Yolları yolcu sayısında rekor kırdı', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'ASELS', 'title': 'ASELSAN yeni savunma ihracatı anlaşması imzaladı', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'GARAN', 'title': 'Garanti Bankası temettü dağıtım tarihini açıkladı', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'BTC', 'title': 'Bitcoin 64.000$ seviyesinde tutunmaya çalışıyor', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'ALTIN', 'title': 'Ons altın 4.200$ üzerinde seyrediyor', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'USD', 'title': 'Dolar/TL 46.26 seviyesinden işlem görüyor', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'PGSUS', 'title': 'Pegasus yaz sezonunda kapasite artışı planlıyor', 'date': datetime.now().strftime('%d.%m.%Y')},
+    return [
+        {'symbol': 'BIST100', 'title': 'BIST100 endeksi gune yukselisle basladi', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'THYAO', 'title': 'Turk Hava Yollari yolcu sayisinda rekor kirdi', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'ASELS', 'title': 'ASELSAN yeni savunma ihracati anlasmasi imzaladi', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'GARAN', 'title': 'Garanti Bankasi temettu dagitim tarihini acikladi', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'BTC', 'title': 'Bitcoin 64.000$ seviyesinde tutunmaya calisiyor', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'ALTIN', 'title': 'Ons altin 4.200$ uzerinde seyrediyor', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'USD', 'title': 'Dolar/TL 46.26 seviyesinden islem goruyor', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'PGSUS', 'title': 'Pegasus yaz sezonunda kapasite artisi planliyor', 'date': datetime.now().strftime('%d.%m.%Y')},
     ]
-    return news
 
 
-# ════════════════════════════
-# SENTIMENT HESAPLAMA
-# ════════════════════════════
-
-def predict_trend(symbol):
-    """AI tahmin modeli."""
-    try:
-        df = yf.Ticker(symbol).history(period="6mo", interval="1d")
-        if df.empty or len(df) < 50:
-            return None
-        
-        close = df['Close']
-        price = float(close.iloc[-1])
-        rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
-        macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
-        ema9 = float(close.ewm(span=9).mean().iloc[-1])
-        ema21 = float(close.ewm(span=21).mean().iloc[-1])
-        ema50 = float(close.ewm(span=50).mean().iloc[-1])
-        
-        last5 = close.iloc[-5:]
-        avg_return = float(last5.pct_change().dropna().mean())
-        volatility = float(last5.pct_change().dropna().std())
-        
-        ts = 0
-        if rsi_val < 30: ts += 3
-        elif rsi_val > 70: ts -= 3
-        elif rsi_val > 50: ts += 1
-        else: ts -= 1
-        
-        if macd_val > 0: ts += 2
-        else: ts -= 2
-        
-        if ema9 > ema21: ts += 1
-        else: ts -= 1
-        
-        if price > ema50: ts += 1
-        else: ts -= 1
-        
-        if avg_return > 0.005: ts += 2
-        elif avg_return < -0.005: ts -= 2
-        
-        if ts >= 4: prediction = "📈 Güçlü Yükseliş"
-        elif ts >= 2: prediction = "📈 Hafif Yükseliş"
-        elif ts <= -4: prediction = "📉 Güçlü Düşüş"
-        elif ts <= -2: prediction = "📉 Hafif Düşüş"
-        else: prediction = "➡️ Yatay"
-        
-        confidence = min(85, 55 + abs(ts) * 4)
-        target_pct = round(avg_return * 300, 1)
-        target_price = round(price * (1 + target_pct / 100), 2)
-        support = round(float(close.iloc[-20:].min()), 2)
-        resistance = round(float(close.iloc[-20:].max()), 2)
-        
-        return {
-            'prediction': prediction, 'confidence': confidence,
-            'target_pct': target_pct, 'target_price': target_price,
-            'trend_strength': ts, 'support': support,
-            'resistance': resistance,
-            'volatility': round(volatility * 100, 2),
-            'price': price,
-        }
-    except:
-        return None
 def calc_sentiment(df):
     if df is None or df.empty or len(df) < 20:
         return None
-    
     close = df['Close']
     high = df['High']
     low = df['Low']
     price = float(close.iloc[-1])
     prev_price = float(close.iloc[-2]) if len(close) > 1 else price
     daily_change = ((price - prev_price) / prev_price) * 100
-    
     rsi_series = momentum.RSIIndicator(close, window=14).rsi()
     macd_hist = trend.MACD(close).macd_diff()
     stoch = momentum.StochasticOscillator(high, low, close).stoch()
-    
     rsi_val = float(rsi_series.iloc[-1])
     macd_val = float(macd_hist.iloc[-1])
     stoch_val = float(stoch.iloc[-1])
     ema9 = float(close.ewm(span=9).mean().iloc[-1])
     ema21 = float(close.ewm(span=21).mean().iloc[-1])
     ema50 = float(close.ewm(span=50).mean().iloc[-1])
-    
     score = 0
     if rsi_val < 30: score += 40
     elif rsi_val > 70: score -= 40
@@ -258,22 +180,15 @@ def calc_sentiment(df):
     elif stoch_val > 80: score -= 20
     if price > ema21: score += 10
     else: score -= 10
-    
     mom = ((price - float(close.iloc[-6])) / float(close.iloc[-6]) * 100) if len(close) > 6 else 0
-    
-    if score > 30: signal = "🟢 Güçlü Alış"
-    elif score > 10: signal = "🟡 Alış"
-    elif score > -10: signal = "⚪ Nötr"
-    elif score > -30: signal = "🟡 Satış"
-    else: signal = "🔴 Güçlü Satış"
-    
-    if score > 20 and mom > 0:
-        decision = "🟢 AL"
-    elif score < -20 and mom < 0:
-        decision = "🔴 SAT"
-    else:
-        decision = "🟡 TUT"
-    
+    if score > 30: signal = "🟢 Guclu Alis"
+    elif score > 10: signal = "🟡 Alis"
+    elif score > -10: signal = "⚪ Notr"
+    elif score > -30: signal = "🟡 Satis"
+    else: signal = "🔴 Guclu Satis"
+    if score > 20 and mom > 0: decision = "🟢 AL"
+    elif score < -20 and mom < 0: decision = "🔴 SAT"
+    else: decision = "🟡 TUT"
     bars = []
     mom_bars = []
     for i in range(-min(60, len(close)-14), 0):
@@ -290,7 +205,6 @@ def calc_sentiment(df):
         except:
             bars.append(0)
             mom_bars.append(0)
-    
     oscillator = ((rsi_val - 50) / 50) * 3
     stp = float(close.rolling(20).mean().iloc[-1])
     hstp = float(close.rolling(50).mean().iloc[-1])
@@ -298,19 +212,63 @@ def calc_sentiment(df):
     trend_dir = "yukari" if mom > 1 else "asagi" if mom < -1 else "yatay"
     sent_puan = round(((score + 100) / 200) * 10, 2)
     sent_puan = max(0, min(10, sent_puan))
-    
     return {
         'price': price, 'score': score, 'signal': signal, 'decision': decision,
         'rsi': rsi_val, 'macd': macd_val, 'stoch': stoch_val,
         'momentum': mom, 'bars': bars, 'mom_bars': mom_bars,
         'prices': [float(p) for p in close.tolist()[-60:]],
-        'oscillator': round(oscillator, 2),
-        'stp': round(stp, 2), 'hstp': round(hstp, 2),
-        'stp_change': round(stp_change, 2),
-        'ema9': ema9, 'ema21': ema21, 'ema50': ema50,
-        'trend': trend_dir, 'sent_puan': sent_puan,
-        'daily_change': round(daily_change, 2),
+        'oscillator': round(oscillator, 2), 'stp': round(stp, 2), 'hstp': round(hstp, 2),
+        'stp_change': round(stp_change, 2), 'ema9': ema9, 'ema21': ema21, 'ema50': ema50,
+        'trend': trend_dir, 'sent_puan': sent_puan, 'daily_change': round(daily_change, 2),
     }
+
+
+def predict_trend(symbol):
+    try:
+        df = yf.Ticker(symbol).history(period="6mo", interval="1d")
+        if df.empty or len(df) < 50:
+            return None
+        close = df['Close']
+        price = float(close.iloc[-1])
+        rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+        macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
+        ema9 = float(close.ewm(span=9).mean().iloc[-1])
+        ema21 = float(close.ewm(span=21).mean().iloc[-1])
+        ema50 = float(close.ewm(span=50).mean().iloc[-1])
+        last5 = close.iloc[-5:]
+        avg_return = float(last5.pct_change().dropna().mean())
+        vol = float(last5.pct_change().dropna().std())
+        ts = 0
+        if rsi_val < 30: ts += 3
+        elif rsi_val > 70: ts -= 3
+        elif rsi_val > 50: ts += 1
+        else: ts -= 1
+        if macd_val > 0: ts += 2
+        else: ts -= 2
+        if ema9 > ema21: ts += 1
+        else: ts -= 1
+        if price > ema50: ts += 1
+        else: ts -= 1
+        if avg_return > 0.005: ts += 2
+        elif avg_return < -0.005: ts -= 2
+        if ts >= 4: prediction = "📈 Guclu Yukselis"
+        elif ts >= 2: prediction = "📈 Hafif Yukselis"
+        elif ts <= -4: prediction = "📉 Guclu Dusus"
+        elif ts <= -2: prediction = "📉 Hafif Dusus"
+        else: prediction = "➡️ Yatay"
+        confidence = min(85, 55 + abs(ts) * 4)
+        target_pct = round(avg_return * 300, 1)
+        target_price = round(price * (1 + target_pct / 100), 2)
+        support = round(float(close.iloc[-20:].min()), 2)
+        resistance = round(float(close.iloc[-20:].max()), 2)
+        return {
+            'prediction': prediction, 'confidence': confidence,
+            'target_pct': target_pct, 'target_price': target_price,
+            'trend_strength': ts, 'support': support, 'resistance': resistance,
+            'volatility': round(vol * 100, 2), 'price': price,
+        }
+    except:
+        return None
 
 
 @st.cache_data(ttl=600)
@@ -321,14 +279,7 @@ def get_all_bist_scores():
             df = get_bist_data(symbol)
             result = calc_sentiment(df)
             if result:
-                results.append({
-                    'Sembol': symbol, 'Fiyat': round(result['price'], 2),
-                    'Gün%': result['daily_change'], 'Sentiment': result['score'],
-                    'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1),
-                    'Momentum%': round(result['momentum'], 2),
-                    'Karar': result['decision'], 'Sinyal': result['signal'],
-                    'Trend': result['trend'],
-                })
+                results.append({'Sembol': symbol, 'Fiyat': round(result['price'], 2), 'Gun%': result['daily_change'], 'Sentiment': result['score'], 'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1), 'Momentum%': round(result['momentum'], 2), 'Karar': result['decision'], 'Sinyal': result['signal'], 'Trend': result['trend']})
         except:
             continue
     return pd.DataFrame(results)
@@ -342,13 +293,7 @@ def get_bist30_scores():
             df = get_bist_data(symbol)
             result = calc_sentiment(df)
             if result:
-                results.append({
-                    'Sembol': symbol, 'Fiyat': round(result['price'], 2),
-                    'Gün%': result['daily_change'], 'Sentiment': result['score'],
-                    'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1),
-                    'Momentum%': round(result['momentum'], 2),
-                    'Karar': result['decision'], 'Sinyal': result['signal'],
-                })
+                results.append({'Sembol': symbol, 'Fiyat': round(result['price'], 2), 'Gun%': result['daily_change'], 'Sentiment': result['score'], 'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1), 'Momentum%': round(result['momentum'], 2), 'Karar': result['decision'], 'Sinyal': result['signal']})
         except:
             continue
     return pd.DataFrame(results)
@@ -357,116 +302,43 @@ def get_bist30_scores():
 @st.cache_data(ttl=600)
 def get_crypto_scores():
     results = []
-    all_crypto = CRYPTO_BINANCE + CRYPTO_EXTRA
-    for symbol in all_crypto:
+    for symbol in CRYPTO_BINANCE + CRYPTO_EXTRA:
         try:
             df = get_crypto_data(symbol)
             result = calc_sentiment(df)
             if result:
-                results.append({
-                    'Sembol': symbol, 'Fiyat': round(result['price'], 4) if result['price'] < 1 else round(result['price'], 2),
-                    'Gün%': result['daily_change'], 'Sentiment': result['score'],
-                    'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1),
-                    'Momentum%': round(result['momentum'], 2),
-                    'Karar': result['decision'], 'Sinyal': result['signal'],
-                })
+                results.append({'Sembol': symbol, 'Fiyat': round(result['price'], 4) if result['price'] < 1 else round(result['price'], 2), 'Gun%': result['daily_change'], 'Sentiment': result['score'], 'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1), 'Momentum%': round(result['momentum'], 2), 'Karar': result['decision'], 'Sinyal': result['signal']})
         except:
             continue
     return pd.DataFrame(results)
 
 
-# ════════════════════════════
-# FAVORİLER (Session State)
-# ════════════════════════════
-
 if 'favorites' not in st.session_state:
     st.session_state.favorites = ['THYAO', 'ASELS', 'GARAN', 'BTC/USDT']
 
-
-# ════════════════════════════
-# SOL MENÜ
-# ════════════════════════════
-
 with st.sidebar:
-    st.markdown("""
-    <div style="text-align:center;padding:10px 0">
-        <span style="font-size:32px">🌊</span>
-        <h2 style="margin:5px 0 0;color:#1565c0">SentiFlow</h2>
-        <p style="color:#666;font-size:12px;margin:0">Piyasa Sentiment Analiz Platformu</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center"><span style="font-size:32px">🌊</span><h2 style="margin:5px 0 0;color:#1565c0">SentiFlow</h2><p style="color:#666;font-size:12px;margin:0">Piyasa Sentiment Analiz Platformu</p></div>', unsafe_allow_html=True)
     st.markdown("---")
-    
-    page = st.radio("📍 Menü", [
-        "🏠 Ana Sayfa",
-        "🧠 AI Tahmin",
-        "📊 Hisse Analiz",
-        "🪙 Kripto Analiz",
-        "🔔 Sinyal Merkezi",
-        "⭐ Favorilerim",
-        "🇺🇸 S&P / NASDAQ",
-        "🇪🇺 Avrupa",
-        "🥇 Altın & Döviz",
-        "📰 KAP Haberleri",
-        "📋 Hisse Tablosu",
-        "🪙 Kripto Top 10",
-        "🔍 Akıllı Filtre",
-        "📈 Günlük Sentiment",
-        "🔄 Osilatör",
-        "📋 BIST30 İlk 10",
-        "📋 BIST30 Son 10",
-    ])
-    
+    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
     st.markdown("---")
-    st.caption(f"v3.0 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 
-# ════════════════════════════
-# SAYFALAR
-# ════════════════════════════
-
-# ═══ ANA SAYFA ═══
 if page == "🏠 Ana Sayfa":
-    st.markdown("""
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-        <span style="font-size:40px">🌊</span>
-        <div>
-            <h1 style="margin:0;color:#1565c0">SentiFlow</h1>
-            <p style="margin:0;color:#666;font-size:14px">Piyasa Sentiment Analiz Platformu</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
+    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><span style="font-size:40px">🌊</span><div><h1 style="margin:0;color:#1565c0">SentiFlow</h1><p style="margin:0;color:#666;font-size:14px">Piyasa Sentiment Analiz Platformu</p></div></div>', unsafe_allow_html=True)
     bist_df = get_bist100_index()
     bist30_df = get_bist30_index()
-    
     if not bist_df.empty:
         bist_result = calc_sentiment(bist_df)
         if bist_result:
             gauge_val = int((bist_result['score'] + 100) / 2)
             gauge_val = max(0, min(100, gauge_val))
-            
-            if gauge_val >= 75: guc_text = "Güçlü"
+            if gauge_val >= 75: guc_text = "Guclu"
             elif gauge_val >= 50: guc_text = "Normal"
-            elif gauge_val >= 25: guc_text = "Zayıf"
-            else: guc_text = "Çok Zayıf"
-            
-            st.markdown(f"""
-            <div style="background:linear-gradient(135deg,#f8f9fa,#e3f2fd);border-radius:16px;padding:24px;margin-bottom:20px;border:1px solid #bbdefb">
-                <div style="display:flex;align-items:center;gap:20px">
-                    <div style="text-align:center;min-width:100px">
-                        <div style="font-size:14px;color:#666;margin-bottom:5px">Sentiment Güç</div>
-                        <div style="font-size:52px;font-weight:800;color:#1565c0">{gauge_val}</div>
-                        <div style="background:{'#c62828' if gauge_val<25 else '#e65100' if gauge_val<50 else '#2e7d32' if gauge_val<75 else '#1565c0'};color:white;border-radius:20px;padding:4px 12px;font-size:12px;display:inline-block">{guc_text}</div>
-                    </div>
-                    <div style="flex:1;color:#555;font-size:14px;line-height:1.6">
-                        Piyasaların genel sentiment gücünü gösteren indikatördür.
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # Piyasalar
+            elif gauge_val >= 25: guc_text = "Zayif"
+            else: guc_text = "Cok Zayif"
+            guc_color = '#c62828' if gauge_val < 25 else '#e65100' if gauge_val < 50 else '#2e7d32' if gauge_val < 75 else '#1565c0'
+            st.markdown(f'<div style="background:linear-gradient(135deg,#f8f9fa,#e3f2fd);border-radius:16px;padding:24px;margin-bottom:20px;border:1px solid #bbdefb"><div style="display:flex;align-items:center;gap:20px"><div style="text-align:center;min-width:100px"><div style="font-size:14px;color:#666">Sentiment Guc</div><div style="font-size:52px;font-weight:800;color:#1565c0">{gauge_val}</div><div style="background:{guc_color};color:white;border-radius:20px;padding:4px 12px;font-size:12px;display:inline-block">{guc_text}</div></div><div style="flex:1;color:#555;font-size:14px">Piyasalarin genel sentiment gucunu gosteren indikator.</div></div></div>', unsafe_allow_html=True)
     st.subheader("📈 Piyasalar")
     pc1, pc2, pc3, pc4 = st.columns(4)
     with pc1:
@@ -487,67 +359,20 @@ if page == "🏠 Ana Sayfa":
     with pc4:
         if not bist_df.empty and bist_result:
             st.metric("Momentum", f"{bist_result['momentum']:.2f}%", "")
-    
     st.markdown("---")
-    
-    # İlk 10
-    st.subheader("📋 İlk 10 Listeleri")
-    bist_sec = st.radio("", ["BIST 30", "BIST 70"], horizontal=True, key="bist_sec")
-    view_mode = st.radio("Görünüm:", ["📊 Kart", "☰ Liste"], horizontal=True, key="view_mode")
-    
-    scores = get_bist30_scores() if bist_sec == "BIST 30" else get_all_bist_scores()
-    
+    st.subheader("📋 Ilk 10")
+    scores = get_bist30_scores()
     if not scores.empty:
         top_list = scores.sort_values('Sentiment', ascending=False).head(10)
-        
-        if view_mode == "📊 Kart":
-            rows = [top_list.iloc[i:i+5] for i in range(0, len(top_list), 5)]
-            for row_data in rows:
-                cols = st.columns(5)
-                for i, (_, row) in enumerate(row_data.iterrows()):
-                    if i < 5:
-                        with cols[i]:
-                            color = "#2e7d32" if row['Gün%'] >= 0 else "#c62828"
-                            arrow = "▲" if row['Gün%'] >= 0 else "▼"
-                            st.markdown(f"""
-                            <div style="background:white;border-radius:12px;padding:14px;border:1px solid #eee;text-align:center;margin-bottom:10px">
-                                <div style="font-weight:700;font-size:14px">{row['Sembol']}</div>
-                                <div style="color:{color};font-size:20px;font-weight:700">{row['Fiyat']}</div>
-                                <div style="color:{color};font-size:12px">{arrow} %{row['Gün%']:.2f}</div>
-                                <div style="margin-top:6px;font-size:11px;color:#666">Sent: {row['Sent.Puan']:.1f} | {row['Karar']}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-        else:
-            display_df = top_list[['Sembol', 'Fiyat', 'Gün%', 'Sent.Puan', 'Karar']].reset_index(drop=True)
-            display_df.index = display_df.index + 1
-            st.dataframe(display_df, use_container_width=True)
-    
+        cols = st.columns(5)
+        for i, (_, row) in enumerate(top_list.head(5).iterrows()):
+            with cols[i]:
+                color = "#2e7d32" if row['Gun%'] >= 0 else "#c62828"
+                st.markdown(f'<div style="background:white;border-radius:12px;padding:14px;border:1px solid #eee;text-align:center"><div style="font-weight:700">{row["Sembol"]}</div><div style="color:{color};font-size:20px;font-weight:700">{row["Fiyat"]}</div><div style="color:{color};font-size:12px">%{row["Gun%"]:.2f}</div><div style="font-size:11px;color:#666">{row["Karar"]}</div></div>', unsafe_allow_html=True)
     st.markdown("---")
-    
-    # Alıcı / Satıcı
-    col_al, col_sat = st.columns(2)
-    with col_al:
-        st.subheader("🟢 Alıcı Yoğunluğu")
-        if not scores.empty:
-            buyers = scores.sort_values('Momentum%', ascending=False).head(3)
-            for _, row in buyers.iterrows():
-                color = "#2e7d32" if row['Gün%'] >= 0 else "#c62828"
-                st.markdown(f"**{row['Sembol']}** — ₺{row['Fiyat']} — <span style='color:{color}'>%{row['Gün%']:.2f}</span>", unsafe_allow_html=True)
-    
-    with col_sat:
-        st.subheader("🔴 Satıcı Yoğunluğu")
-        if not scores.empty:
-            sellers = scores.sort_values('Momentum%', ascending=True).head(3)
-            for _, row in sellers.iterrows():
-                color = "#2e7d32" if row['Gün%'] >= 0 else "#c62828"
-                st.markdown(f"**{row['Sembol']}** — ₺{row['Fiyat']} — <span style='color:{color}'>%{row['Gün%']:.2f}</span>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # Altın & Döviz
-    st.subheader("💰 Altın & Döviz")
+    st.subheader("💰 Altin & Doviz")
     gc1, gc2, gc3, gc4 = st.columns(4)
-    for i, (name, sym) in enumerate([('💵 USD/TRY','USDTRY=X'),('💶 EUR/TRY','EURTRY=X'),('🥇 Altın','GC=F'),('🥈 Gümüş','SI=F')]):
+    for i, (name, sym) in enumerate([('USD/TRY','USDTRY=X'),('EUR/TRY','EURTRY=X'),('Altin','GC=F'),('Gumus','SI=F')]):
         with [gc1, gc2, gc3, gc4][i]:
             df_c = get_stock_data(sym)
             if not df_c.empty:
@@ -555,28 +380,21 @@ if page == "🏠 Ana Sayfa":
                 prev_p = float(df_c['Close'].iloc[-2]) if len(df_c) > 1 else p
                 chg = ((p - prev_p) / prev_p) * 100
                 st.metric(name, f"{p:,.2f}", f"{chg:+.2f}%")
-    
     st.markdown("---")
-    
-    # Haberler
-    st.subheader("📰 Analiz & Haber")
+    st.subheader("📰 Haberler")
     news = get_kap_news()
-    if news:
-        for item in news[:4]:
-            st.markdown(f"**{item['symbol']}** — {item['title']}")
+    for item in news[:4]:
+        st.markdown(f"**{item['symbol']}** — {item['title']}")
 
 
-# ═══ HİSSE ANALİZ ═══
 elif page == "📊 Hisse Analiz":
     st.title("📊 Hisse Sentiment Analizi")
-    symbol = st.selectbox("Hisse Seçin:", list(ALL_BIST.keys()))
+    symbol = st.selectbox("Hisse Secin:", list(ALL_BIST.keys()))
     df = get_bist_data(symbol)
-    
     if not df.empty:
         result = calc_sentiment(df)
         if result:
             tab1, tab2, tab3 = st.tabs(["📈 Grafik", "📋 Tablo", "🔍 Analiz"])
-            
             with tab1:
                 c1, c2, c3, c4, c5 = st.columns(5)
                 c1.metric("Fiyat", f"₺{result['price']:,.2f}", f"%{result['daily_change']}")
@@ -584,7 +402,6 @@ elif page == "📊 Hisse Analiz":
                 c3.metric("RSI", f"{result['rsi']:.1f}")
                 c4.metric("Stoch", f"{result['stoch']:.1f}")
                 c5.metric("Mom", f"{result['momentum']:.1f}%")
-                
                 st.markdown("---")
                 left_chart, right_chart = st.columns(2)
                 with left_chart:
@@ -593,7 +410,7 @@ elif page == "📊 Hisse Analiz":
                     colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['bars']]
                     fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment', marker_color=colors, opacity=0.8), secondary_y=False)
                     fig.add_trace(go.Scatter(x=x, y=result['prices'], name='Fiyat', line=dict(color='#2e7d32', width=2.5)), secondary_y=True)
-                    fig.update_layout(height=380, paper_bgcolor='white', plot_bgcolor='white', margin=dict(l=40,r=40,t=10,b=30))
+                    fig.update_layout(height=380, paper_bgcolor='white', plot_bgcolor='white', margin=dict(l=40, r=40, t=10, b=30))
                     fig.update_xaxes(showgrid=False)
                     fig.update_yaxes(showgrid=True, gridcolor='#eee')
                     st.plotly_chart(fig, use_container_width=True)
@@ -603,49 +420,36 @@ elif page == "📊 Hisse Analiz":
                     fig2.add_trace(go.Scatter(x=x2, y=result['prices'], name='Fiyat', line=dict(color='#2e7d32', width=2.5)))
                     fig2.add_trace(go.Scatter(x=x2, y=[result['stp']]*len(x2), name='STP', line=dict(color='#e65100', width=2, dash='dash')))
                     fig2.add_trace(go.Scatter(x=x2, y=[result['hstp']]*len(x2), name='HSTP', line=dict(color='#b71c1c', width=2, dash='dot')))
-                    fig2.update_layout(height=380, paper_bgcolor='white', plot_bgcolor='white', margin=dict(l=40,r=10,t=10,b=30))
+                    fig2.update_layout(height=380, paper_bgcolor='white', plot_bgcolor='white', margin=dict(l=40, r=10, t=10, b=30))
                     fig2.update_xaxes(showgrid=False)
                     fig2.update_yaxes(showgrid=True, gridcolor='#eee')
                     st.plotly_chart(fig2, use_container_width=True)
-            
             with tab2:
-                data_table = pd.DataFrame({
-                    'Gösterge': ['Fiyat', 'Sent.Puan', 'RSI', 'Stochastic', 'MACD', 'Momentum', 'EMA9', 'EMA21', 'EMA50', 'STP', 'HSTP'],
-                    'Değer': [f"₺{result['price']:,.2f}", f"{result['sent_puan']:.2f}", f"{result['rsi']:.1f}", f"{result['stoch']:.1f}", f"{result['macd']:.4f}", f"%{result['momentum']:.2f}", f"₺{result['ema9']:.2f}", f"₺{result['ema21']:.2f}", f"₺{result['ema50']:.2f}", f"₺{result['stp']}", f"₺{result['hstp']}"],
-                    'Durum': [result['decision'], result['signal'], '🟢' if result['rsi']<30 else '🔴' if result['rsi']>70 else '⚪', '🟢' if result['stoch']<20 else '🔴' if result['stoch']>80 else '⚪', '🟢' if result['macd']>0 else '🔴', '🟢' if result['momentum']>0 else '🔴', '🟢' if result['price']>result['ema9'] else '🔴', '🟢' if result['price']>result['ema21'] else '🔴', '🟢' if result['price']>result['ema50'] else '🔴', '🟢' if result['price']>result['stp'] else '🔴', '🟢' if result['price']>result['hstp'] else '🔴'],
-                })
+                data_table = pd.DataFrame({'Gosterge': ['Fiyat', 'Sent.Puan', 'RSI', 'Stoch', 'MACD', 'Momentum', 'EMA9', 'EMA21', 'EMA50', 'STP', 'HSTP'], 'Deger': [f"₺{result['price']:,.2f}", f"{result['sent_puan']:.2f}", f"{result['rsi']:.1f}", f"{result['stoch']:.1f}", f"{result['macd']:.4f}", f"%{result['momentum']:.2f}", f"₺{result['ema9']:.2f}", f"₺{result['ema21']:.2f}", f"₺{result['ema50']:.2f}", f"₺{result['stp']}", f"₺{result['hstp']}"], 'Durum': [result['decision'], result['signal'], '🟢' if result['rsi']<30 else '🔴' if result['rsi']>70 else '⚪', '🟢' if result['stoch']<20 else '🔴' if result['stoch']>80 else '⚪', '🟢' if result['macd']>0 else '🔴', '🟢' if result['momentum']>0 else '🔴', '🟢' if result['price']>result['ema9'] else '🔴', '🟢' if result['price']>result['ema21'] else '🔴', '🟢' if result['price']>result['ema50'] else '🔴', '🟢' if result['price']>result['stp'] else '🔴', '🟢' if result['price']>result['hstp'] else '🔴']})
                 st.dataframe(data_table, use_container_width=True, hide_index=True)
-            
             with tab3:
                 dec_color = "#2e7d32" if "AL" in result['decision'] else "#c62828" if "SAT" in result['decision'] else "#f57c00"
-                st.markdown(f"""
-                <div style="background:{dec_color};color:white;border-radius:12px;padding:25px;text-align:center;margin:20px 0">
-                    <h1 style="margin:0;color:white">{result['decision']}</h1>
-                    <p style="margin:5px 0 0;font-size:16px;color:rgba(255,255,255,0.9)">{result['signal']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<div style="background:{dec_color};color:white;border-radius:12px;padding:25px;text-align:center;margin:20px 0"><h1 style="margin:0;color:white">{result["decision"]}</h1><p style="margin:5px 0 0;font-size:16px;color:rgba(255,255,255,0.9)">{result["signal"]}</p></div>', unsafe_allow_html=True)
                 a1, a2 = st.columns(2)
                 with a1:
-                    st.markdown("**🟢 Alış Sinyalleri:**")
-                    if result['rsi'] < 30: st.write("• RSI aşırı satım")
-                    if result['macd'] > 0: st.write("• MACD pozitif")
-                    if result['price'] > result['ema21']: st.write("• Fiyat EMA21 üstünde")
-                    if result['momentum'] > 0: st.write("• Momentum pozitif")
+                    st.markdown("**🟢 Alis Sinyalleri:**")
+                    if result['rsi'] < 30: st.write("RSI asiri satim")
+                    if result['macd'] > 0: st.write("MACD pozitif")
+                    if result['price'] > result['ema21']: st.write("Fiyat EMA21 ustunde")
+                    if result['momentum'] > 0: st.write("Momentum pozitif")
                 with a2:
-                    st.markdown("**🔴 Satış Sinyalleri:**")
-                    if result['rsi'] > 70: st.write("• RSI aşırı alım")
-                    if result['macd'] < 0: st.write("• MACD negatif")
-                    if result['price'] < result['ema21']: st.write("• Fiyat EMA21 altında")
-                    if result['momentum'] < 0: st.write("• Momentum negatif")
+                    st.markdown("**🔴 Satis Sinyalleri:**")
+                    if result['rsi'] > 70: st.write("RSI asiri alim")
+                    if result['macd'] < 0: st.write("MACD negatif")
+                    if result['price'] < result['ema21']: st.write("Fiyat EMA21 altinda")
+                    if result['momentum'] < 0: st.write("Momentum negatif")
 
 
-# ═══ KRİPTO ANALİZ ═══
 elif page == "🪙 Kripto Analiz":
     st.title("🪙 Kripto Sentiment Analizi")
     all_crypto = CRYPTO_BINANCE + CRYPTO_EXTRA
-    symbol = st.selectbox("Kripto Seçin:", all_crypto)
+    symbol = st.selectbox("Kripto Secin:", all_crypto)
     df = get_crypto_data(symbol)
-    
     if not df.empty:
         result = calc_sentiment(df)
         if result:
@@ -655,7 +459,6 @@ elif page == "🪙 Kripto Analiz":
             c3.metric("RSI", f"{result['rsi']:.1f}")
             c4.metric("Stoch", f"{result['stoch']:.1f}")
             c5.metric("Mom", f"{result['momentum']:.1f}%")
-            
             st.markdown("---")
             fig = make_subplots(specs=[[{"secondary_y": True}]])
             x = list(range(len(result['bars'])))
@@ -667,318 +470,247 @@ elif page == "🪙 Kripto Analiz":
             fig.update_yaxes(showgrid=True, gridcolor='#eee')
             st.plotly_chart(fig, use_container_width=True)
     else:
-        st.error(f"'{symbol}' için veri çekilemedi!")
+        st.error(f"'{symbol}' icin veri cekilemedi!")
 
 
-# ═══ SİNYAL MERKEZİ ═══
+elif page == "🧠 AI Tahmin":
+    st.title("🧠 AI Tahmin Modeli")
+    st.caption("Teknik gostergelere dayali 3 gunluk trend tahmini")
+    market_ai = st.radio("Piyasa:", ["BIST", "Kripto"], horizontal=True)
+    if market_ai == "BIST":
+        symbol_ai = st.selectbox("Hisse:", list(ALL_BIST.keys()))
+        yahoo_sym = ALL_BIST[symbol_ai]
+    else:
+        symbol_ai = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA)
+        yahoo_sym = None
+    if st.button("🧠 Tahmin Yap", type="primary"):
+        with st.spinner("AI analiz yapiyor..."):
+            if yahoo_sym:
+                r = predict_trend(yahoo_sym)
+            else:
+                df_ai = get_crypto_data(symbol_ai)
+                if not df_ai.empty and len(df_ai) >= 50:
+                    close = df_ai['Close']
+                    rsi_v = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+                    macd_v = float(trend.MACD(close).macd_diff().iloc[-1])
+                    price_v = float(close.iloc[-1])
+                    avg_r = float(close.iloc[-5:].pct_change().dropna().mean())
+                    vol_v = float(close.iloc[-5:].pct_change().dropna().std())
+                    ts = 0
+                    if rsi_v < 30: ts += 3
+                    elif rsi_v > 70: ts -= 3
+                    if macd_v > 0: ts += 2
+                    else: ts -= 2
+                    if avg_r > 0: ts += 1
+                    else: ts -= 1
+                    if ts >= 3: pred = "📈 Guclu Yukselis"
+                    elif ts >= 1: pred = "📈 Hafif Yukselis"
+                    elif ts <= -3: pred = "📉 Guclu Dusus"
+                    elif ts <= -1: pred = "📉 Hafif Dusus"
+                    else: pred = "➡️ Yatay"
+                    conf = min(80, 55 + abs(ts) * 4)
+                    tgt = round(avg_r * 300, 1)
+                    r = {'prediction': pred, 'confidence': conf, 'target_pct': tgt, 'target_price': round(price_v * (1 + tgt / 100), 4), 'trend_strength': ts, 'support': round(float(close.iloc[-20:].min()), 4), 'resistance': round(float(close.iloc[-20:].max()), 4), 'volatility': round(vol_v * 100, 2), 'price': price_v}
+                else:
+                    r = None
+            if r:
+                pc = "#2e7d32" if "Yukselis" in r['prediction'] else "#c62828" if "Dusus" in r['prediction'] else "#f57c00"
+                st.markdown(f'<div style="background:{pc};color:white;border-radius:12px;padding:25px;text-align:center;margin:20px 0"><h1 style="margin:0;color:white">{r["prediction"]}</h1><p style="margin:10px 0 0;font-size:18px;color:rgba(255,255,255,0.9)">Guven: %{r["confidence"]}</p></div>', unsafe_allow_html=True)
+                st.markdown("---")
+                r1, r2, r3, r4 = st.columns(4)
+                r1.metric("Fiyat", f"{r['price']:,.2f}")
+                r2.metric("Hedef", f"{r['target_price']:,.2f}", f"%{r['target_pct']}")
+                r3.metric("Destek", f"{r['support']:,.2f}")
+                r4.metric("Direnc", f"{r['resistance']:,.2f}")
+                st.warning("Bu tahmin yatirim tavsiyesi degildir.")
+            else:
+                st.error("Tahmin yapilamadi.")
+
+
 elif page == "🔔 Sinyal Merkezi":
     st.title("🔔 Sinyal Merkezi")
-    st.caption("Tüm AL / SAT / TUT sinyalleri tek sayfada")
-    
-    sinyal_tab1, sinyal_tab2, sinyal_tab3 = st.tabs(["🇹🇷 BIST", "🪙 Kripto", "🇺🇸 ABD & 🇪🇺 Avrupa"])
-    
+    st.caption("Tum AL / SAT / TUT sinyalleri")
+    sinyal_tab1, sinyal_tab2, sinyal_tab3 = st.tabs(["BIST", "Kripto", "ABD & Avrupa"])
     with sinyal_tab1:
-        st.info("⏳ BIST sinyalleri yükleniyor...")
         all_scores = get_all_bist_scores()
         if not all_scores.empty:
-            # AL sinyalleri
-            al_signals = all_scores[all_scores['Karar'].str.contains('AL')]
-            sat_signals = all_scores[all_scores['Karar'].str.contains('SAT')]
-            tut_signals = all_scores[all_scores['Karar'].str.contains('TUT')]
-            
-            st.markdown(f"### 🟢 AL Sinyali ({len(al_signals)} hisse)")
-            if not al_signals.empty:
-                st.dataframe(al_signals[['Sembol','Fiyat','Gün%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
-            
-            st.markdown(f"### 🔴 SAT Sinyali ({len(sat_signals)} hisse)")
-            if not sat_signals.empty:
-                st.dataframe(sat_signals[['Sembol','Fiyat','Gün%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
-            
-            st.markdown(f"### 🟡 TUT ({len(tut_signals)} hisse)")
-            if not tut_signals.empty:
-                st.dataframe(tut_signals[['Sembol','Fiyat','Gün%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
-    
+            al_s = all_scores[all_scores['Karar'].str.contains('AL')]
+            sat_s = all_scores[all_scores['Karar'].str.contains('SAT')]
+            tut_s = all_scores[all_scores['Karar'].str.contains('TUT')]
+            st.markdown(f"### 🟢 AL ({len(al_s)})")
+            if not al_s.empty: st.dataframe(al_s[['Sembol','Fiyat','Gun%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
+            st.markdown(f"### 🔴 SAT ({len(sat_s)})")
+            if not sat_s.empty: st.dataframe(sat_s[['Sembol','Fiyat','Gun%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
+            st.markdown(f"### 🟡 TUT ({len(tut_s)})")
+            if not tut_s.empty: st.dataframe(tut_s[['Sembol','Fiyat','Gun%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
     with sinyal_tab2:
-        st.info("⏳ Kripto sinyalleri yükleniyor...")
         crypto_scores = get_crypto_scores()
         if not crypto_scores.empty:
             al_c = crypto_scores[crypto_scores['Karar'].str.contains('AL')]
             sat_c = crypto_scores[crypto_scores['Karar'].str.contains('SAT')]
             tut_c = crypto_scores[crypto_scores['Karar'].str.contains('TUT')]
-            
-            st.markdown(f"### 🟢 AL ({len(al_c)})")
             if not al_c.empty:
-                st.dataframe(al_c[['Sembol','Fiyat','Gün%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
-            
-            st.markdown(f"### 🔴 SAT ({len(sat_c)})")
+                st.markdown(f"### 🟢 AL ({len(al_c)})")
+                st.dataframe(al_c[['Sembol','Fiyat','Gun%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
             if not sat_c.empty:
-                st.dataframe(sat_c[['Sembol','Fiyat','Gün%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
-            
-            st.markdown(f"### 🟡 TUT ({len(tut_c)})")
+                st.markdown(f"### 🔴 SAT ({len(sat_c)})")
+                st.dataframe(sat_c[['Sembol','Fiyat','Gun%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
             if not tut_c.empty:
-                st.dataframe(tut_c[['Sembol','Fiyat','Gün%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
-    
+                st.markdown(f"### 🟡 TUT ({len(tut_c)})")
+                st.dataframe(tut_c[['Sembol','Fiyat','Gun%','Sent.Puan','Momentum%']].reset_index(drop=True), use_container_width=True)
     with sinyal_tab3:
-        st.info("⏳ ABD & Avrupa sinyalleri yükleniyor...")
         intl_results = []
         for name, sym in {**US_TOP10, **EUROPE_TOP10}.items():
             try:
                 df = get_stock_data(sym)
                 r = calc_sentiment(df)
-                if r:
-                    intl_results.append({'Sembol': name, 'Fiyat': round(r['price'],2), 'Gün%': r['daily_change'], 'Sent.Puan': r['sent_puan'], 'Karar': r['decision']})
+                if r: intl_results.append({'Sembol': name, 'Fiyat': round(r['price'],2), 'Gun%': r['daily_change'], 'Sent.Puan': r['sent_puan'], 'Karar': r['decision']})
             except:
                 continue
         if intl_results:
             intl_df = pd.DataFrame(intl_results)
-            al_i = intl_df[intl_df['Karar'].str.contains('AL')]
-            sat_i = intl_df[intl_df['Karar'].str.contains('SAT')]
-            tut_i = intl_df[intl_df['Karar'].str.contains('TUT')]
-            
-            if not al_i.empty:
-                st.markdown(f"### 🟢 AL ({len(al_i)})")
-                st.dataframe(al_i.reset_index(drop=True), use_container_width=True)
-            if not sat_i.empty:
-                st.markdown(f"### 🔴 SAT ({len(sat_i)})")
-                st.dataframe(sat_i.reset_index(drop=True), use_container_width=True)
-            if not tut_i.empty:
-                st.markdown(f"### 🟡 TUT ({len(tut_i)})")
-                st.dataframe(tut_i.reset_index(drop=True), use_container_width=True)
+            st.dataframe(intl_df, use_container_width=True, hide_index=True)
 
 
-# ═══ FAVORİLERİM ═══
 elif page == "⭐ Favorilerim":
     st.title("⭐ Favorilerim")
-    st.caption("Favori hisselerinizi takip edin")
-    
-    # Favori ekleme
-    with st.expander("➕ Favori Ekle / Kaldır"):
-        new_fav = st.text_input("Sembol ekle (örn: THYAO, BTC/USDT):")
-        col_add, col_remove = st.columns(2)
-        with col_add:
-            if st.button("➕ Ekle") and new_fav:
-                if new_fav.upper() not in st.session_state.favorites:
-                    st.session_state.favorites.append(new_fav.upper())
-                    st.success(f"✅ {new_fav.upper()} eklendi!")
-                    st.rerun()
-        with col_remove:
-            if st.session_state.favorites:
-                remove_fav = st.selectbox("Kaldır:", st.session_state.favorites)
-                if st.button("🗑️ Kaldır"):
-                    st.session_state.favorites.remove(remove_fav)
-                    st.success(f"❌ {remove_fav} kaldırıldı!")
-                    st.rerun()
-    
+    with st.expander("Favori Ekle / Kaldir"):
+        new_fav = st.text_input("Sembol ekle (orn: THYAO, BTC/USDT):")
+        if st.button("Ekle") and new_fav:
+            if new_fav.upper() not in st.session_state.favorites:
+                st.session_state.favorites.append(new_fav.upper())
+                st.rerun()
+        if st.session_state.favorites:
+            remove_fav = st.selectbox("Kaldir:", st.session_state.favorites)
+            if st.button("Kaldir"):
+                st.session_state.favorites.remove(remove_fav)
+                st.rerun()
     st.markdown("---")
-    st.markdown(f"**Takip Listesi:** {', '.join(st.session_state.favorites)}")
-    st.markdown("---")
-    
-    # Favori analiz
     for fav in st.session_state.favorites:
         try:
             if '/' in fav:
                 df = get_crypto_data(fav)
-                currency = "$"
+                cur = "$"
             else:
                 df = get_bist_data(fav)
-                currency = "₺"
-            
+                cur = "₺"
             result = calc_sentiment(df)
             if result:
                 color = "#2e7d32" if result['daily_change'] >= 0 else "#c62828"
                 dec_bg = "#e8f5e9" if "AL" in result['decision'] else "#ffebee" if "SAT" in result['decision'] else "#fff3e0"
-                
-                st.markdown(f"""
-                <div style="background:{dec_bg};border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #eee">
-                    <div style="display:flex;justify-content:space-between;align-items:center">
-                        <div>
-                            <strong style="font-size:16px">{fav}</strong>
-                            <span style="margin-left:10px;color:{color};font-size:18px;font-weight:700">{currency}{result['price']:,.2f}</span>
-                            <span style="color:{color};font-size:13px;margin-left:8px">%{result['daily_change']:.2f}</span>
-                        </div>
-                        <div style="text-align:right">
-                            <span style="font-size:14px">{result['decision']}</span><br>
-                            <span style="color:#666;font-size:12px">Sent: {result['sent_puan']:.1f} | RSI: {result['rsi']:.0f} | Mom: {result['momentum']:.1f}%</span>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<div style="background:{dec_bg};border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #eee"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>{fav}</strong> <span style="color:{color};font-size:18px;font-weight:700">{cur}{result["price"]:,.2f}</span> <span style="color:{color};font-size:13px">%{result["daily_change"]:.2f}</span></div><div>{result["decision"]} | Sent: {result["sent_puan"]:.1f}</div></div></div>', unsafe_allow_html=True)
         except:
-            st.caption(f"⚠️ {fav} verisi çekilemedi")
+            pass
 
 
-# ═══ S&P / NASDAQ ═══
 elif page == "🇺🇸 S&P / NASDAQ":
     st.title("🇺🇸 S&P 500 / NASDAQ — Top 10")
-    st.info("⏳ Veriler çekiliyor...")
     results = []
     for name, symbol in US_TOP10.items():
         try:
             df = get_stock_data(symbol)
             r = calc_sentiment(df)
-            if r:
-                results.append({'Sembol': name, 'Fiyat': f"${r['price']:,.2f}", 'Gün%': r['daily_change'], 'Sentiment': r['sent_puan'], 'Momentum%': round(r['momentum'],2), 'Karar': r['decision']})
+            if r: results.append({'Sembol': name, 'Fiyat': f"${r['price']:,.2f}", 'Gun%': r['daily_change'], 'Sentiment': r['sent_puan'], 'Momentum%': round(r['momentum'],2), 'Karar': r['decision']})
         except:
             continue
-    if results:
-        st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
+    if results: st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
 
 
-# ═══ AVRUPA ═══
 elif page == "🇪🇺 Avrupa":
     st.title("🇪🇺 Avrupa — Top 10")
-    st.info("⏳ Veriler çekiliyor...")
     results = []
     for name, symbol in EUROPE_TOP10.items():
         try:
             df = get_stock_data(symbol)
             r = calc_sentiment(df)
-            if r:
-                results.append({'Sembol': name, 'Fiyat': f"€{r['price']:,.2f}", 'Gün%': r['daily_change'], 'Sentiment': r['sent_puan'], 'Momentum%': round(r['momentum'],2), 'Karar': r['decision']})
+            if r: results.append({'Sembol': name, 'Fiyat': f"€{r['price']:,.2f}", 'Gun%': r['daily_change'], 'Sentiment': r['sent_puan'], 'Momentum%': round(r['momentum'],2), 'Karar': r['decision']})
         except:
             continue
-    if results:
-        st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
+    if results: st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
 
 
-# ═══ ALTIN & DÖVİZ ═══
-elif page == "🥇 Altın & Döviz":
-    st.title("🥇 Altın, Gümüş & Döviz")
-    
-    st.subheader("💱 Döviz Kurları")
+elif page == "🥇 Altin & Doviz":
+    st.title("🥇 Altin, Gumus & Doviz")
+    st.subheader("Doviz Kurlari")
     d1, d2, d3, d4 = st.columns(4)
-    for i, (name, sym) in enumerate([('💵 USD/TRY','USDTRY=X'),('💶 EUR/TRY','EURTRY=X'),('🇨🇭 CHF/TRY','CHFTRY=X'),('🇬🇧 GBP/TRY','GBPTRY=X')]):
+    for i, (name, sym) in enumerate([('USD/TRY','USDTRY=X'),('EUR/TRY','EURTRY=X'),('CHF/TRY','CHFTRY=X'),('GBP/TRY','GBPTRY=X')]):
         with [d1,d2,d3,d4][i]:
             df_d = get_stock_data(sym)
             if not df_d.empty:
                 p = float(df_d['Close'].iloc[-1])
                 prev = float(df_d['Close'].iloc[-2]) if len(df_d)>1 else p
                 st.metric(name, f"₺{p:,.4f}", f"{((p-prev)/prev)*100:+.2f}%")
-    
     st.markdown("---")
-    st.subheader("🥇 Kıymetli Madenler")
     m1, m2 = st.columns(2)
     with m1:
         df_g = get_stock_data('GC=F')
         if not df_g.empty:
             p = float(df_g['Close'].iloc[-1])
             prev = float(df_g['Close'].iloc[-2]) if len(df_g)>1 else p
-            st.metric("🥇 Altın (Ons)", f"${p:,.2f}", f"{((p-prev)/prev)*100:+.2f}%")
+            st.metric("Altin (Ons)", f"${p:,.2f}", f"{((p-prev)/prev)*100:+.2f}%")
     with m2:
         df_s = get_stock_data('SI=F')
         if not df_s.empty:
             p = float(df_s['Close'].iloc[-1])
             prev = float(df_s['Close'].iloc[-2]) if len(df_s)>1 else p
-            st.metric("🥈 Gümüş (Ons)", f"${p:,.2f}", f"{((p-prev)/prev)*100:+.2f}%")
+            st.metric("Gumus (Ons)", f"${p:,.2f}", f"{((p-prev)/prev)*100:+.2f}%")
 
 
-# ═══ KAP HABERLERİ ═══
 elif page == "📰 KAP Haberleri":
     st.title("📰 KAP Haberleri")
-    st.caption("Güncel piyasa haberleri ve bildirimleri")
     news = get_kap_news()
-    if news:
-        for item in news:
-            st.markdown(f"""
-            <div style="background:white;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #eee;border-left:4px solid #1565c0">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    <span style="background:#1565c0;color:white;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">{item['symbol']}</span>
-                    <span style="color:#999;font-size:12px">{item['date']}</span>
-                </div>
-                <div style="font-size:14px;color:#333;line-height:1.5">{item['title']}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    for item in news:
+        st.markdown(f'<div style="background:white;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #eee;border-left:4px solid #1565c0"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="background:#1565c0;color:white;padding:2px 8px;border-radius:4px;font-size:12px">{item["symbol"]}</span><span style="color:#999;font-size:12px">{item["date"]}</span></div><div style="font-size:14px;color:#333">{item["title"]}</div></div>', unsafe_allow_html=True)
 
 
-# ═══ HİSSE TABLOSU ═══
 elif page == "📋 Hisse Tablosu":
-    st.title("📋 Hisse Tablosu — Tüm BIST")
-    st.info("⏳ Tüm hisseler analiz ediliyor...")
+    st.title("📋 Hisse Tablosu")
     all_scores = get_all_bist_scores()
     if not all_scores.empty:
         f1, f2 = st.columns(2)
-        with f1:
-            sort_by = st.selectbox("Sırala:", ['Sentiment', 'Momentum%', 'RSI', 'Fiyat'])
-        with f2:
-            sort_order = st.radio("Sıra:", ['En Yüksek', 'En Düşük'], horizontal=True)
-        sorted_df = all_scores.sort_values(sort_by, ascending=(sort_order=='En Düşük')).reset_index(drop=True)
+        with f1: sort_by = st.selectbox("Sirala:", ['Sentiment', 'Momentum%', 'RSI', 'Fiyat'])
+        with f2: sort_order = st.radio("Sira:", ['En Yuksek', 'En Dusuk'], horizontal=True)
+        sorted_df = all_scores.sort_values(sort_by, ascending=(sort_order=='En Dusuk')).reset_index(drop=True)
         sorted_df.index = sorted_df.index + 1
         st.dataframe(sorted_df, use_container_width=True, height=500)
 
 
-# ═══ KRİPTO TOP 10 ═══
 elif page == "🪙 Kripto Top 10":
-    st.title("🪙 Kripto — İlk 10 / Son 10")
-    st.info("⏳ Kripto verileri analiz ediliyor...")
-    
+    st.title("🪙 Kripto Top 10")
     crypto_scores = get_crypto_scores()
     if not crypto_scores.empty:
-        ktab1, ktab2 = st.tabs(["🟢 İlk 10 (En Güçlü)", "🔴 Son 10 (En Zayıf)"])
-        
+        ktab1, ktab2 = st.tabs(["🟢 Ilk 10", "🔴 Son 10"])
         with ktab1:
             top10_c = crypto_scores.sort_values('Sentiment', ascending=False).head(10).reset_index(drop=True)
             top10_c.index = top10_c.index + 1
             st.dataframe(top10_c, use_container_width=True)
-            
-            fig = go.Figure(go.Bar(
-                x=top10_c['Sembol'], y=top10_c['Sentiment'],
-                marker_color=['#1565c0' if v>=0 else '#c62828' for v in top10_c['Sentiment']],
-                text=top10_c['Karar'], textposition='outside'
-            ))
-            fig.update_layout(height=350, paper_bgcolor='white', plot_bgcolor='white')
-            st.plotly_chart(fig, use_container_width=True)
-        
         with ktab2:
             bot10_c = crypto_scores.sort_values('Sentiment', ascending=True).head(10).reset_index(drop=True)
             bot10_c.index = bot10_c.index + 1
             st.dataframe(bot10_c, use_container_width=True)
-            
-            fig = go.Figure(go.Bar(
-                x=bot10_c['Sembol'], y=bot10_c['Sentiment'],
-                marker_color=['#1565c0' if v>=0 else '#c62828' for v in bot10_c['Sentiment']],
-                text=bot10_c['Karar'], textposition='outside'
-            ))
-            fig.update_layout(height=350, paper_bgcolor='white', plot_bgcolor='white')
-            st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ AKILLI FİLTRE ═══
-elif page == "🔍 Akıllı Filtre":
-    st.title("🔍 Akıllı Filtre")
+elif page == "🔍 Akilli Filtre":
+    st.title("🔍 Akilli Filtre")
     all_scores = get_all_bist_scores()
     if not all_scores.empty:
-        filter_type = st.selectbox("Filtre:", [
-            "🚀 Potansiyel Kalkışlar", "💪 Güçlü Alış", "⭐ En Yüksek Sentiment",
-            "📈 Yukarı Momentum", "🔴 Güçlü Satış", "📉 Aşağı Momentum", "⚪ Nötr",
-        ])
+        filter_type = st.selectbox("Filtre:", ["Potansiyel Kalkislar", "Guclu Alis", "En Yuksek Sentiment", "Yukari Momentum", "Guclu Satis", "Asagi Momentum", "Notr"])
         st.markdown("---")
-        
-        if "Potansiyel" in filter_type:
-            filtered = all_scores[(all_scores['Sentiment'] > -10) & (all_scores['Sentiment'] < 20) & (all_scores['Momentum%'] > 0)]
-        elif "Güçlü Alış" in filter_type:
-            filtered = all_scores[all_scores['Sentiment'] > 30]
-        elif "En Yüksek" in filter_type:
-            filtered = all_scores.sort_values('Sentiment', ascending=False).head(10)
-        elif "Yukarı" in filter_type:
-            filtered = all_scores[all_scores['Momentum%'] > 2]
-        elif "Güçlü Satış" in filter_type:
-            filtered = all_scores[all_scores['Sentiment'] < -30]
-        elif "Aşağı" in filter_type:
-            filtered = all_scores[all_scores['Momentum%'] < -2]
-        else:
-            filtered = all_scores[(all_scores['Sentiment'] >= -10) & (all_scores['Sentiment'] <= 10)]
-        
+        if "Potansiyel" in filter_type: filtered = all_scores[(all_scores['Sentiment'] > -10) & (all_scores['Sentiment'] < 20) & (all_scores['Momentum%'] > 0)]
+        elif "Guclu Alis" in filter_type: filtered = all_scores[all_scores['Sentiment'] > 30]
+        elif "En Yuksek" in filter_type: filtered = all_scores.sort_values('Sentiment', ascending=False).head(10)
+        elif "Yukari" in filter_type: filtered = all_scores[all_scores['Momentum%'] > 2]
+        elif "Guclu Satis" in filter_type: filtered = all_scores[all_scores['Sentiment'] < -30]
+        elif "Asagi" in filter_type: filtered = all_scores[all_scores['Momentum%'] < -2]
+        else: filtered = all_scores[(all_scores['Sentiment'] >= -10) & (all_scores['Sentiment'] <= 10)]
         if not filtered.empty:
-            filtered = filtered.reset_index(drop=True)
-            filtered.index = filtered.index + 1
-            st.dataframe(filtered, use_container_width=True)
+            st.dataframe(filtered.reset_index(drop=True), use_container_width=True)
         else:
-            st.warning("Sonuç bulunamadı.")
+            st.warning("Sonuc bulunamadi.")
 
 
-# ═══ GÜNLÜK SENTİMENT ═══
-elif page == "📈 Günlük Sentiment":
-    st.title("📈 Günlük Sentiment — BIST100")
+elif page == "📈 Gunluk Sentiment":
+    st.title("📈 Gunluk Sentiment — BIST100")
     bist_df = get_bist100_index()
     if not bist_df.empty:
         result = calc_sentiment(bist_df)
@@ -988,10 +720,8 @@ elif page == "📈 Günlük Sentiment":
             i2.metric("Momentum", f"{result['momentum']:.1f}%")
             i3.metric("BIST100", f"{result['price']:,.2f}")
             i4.metric("Karar", result['decision'])
-            
             st.markdown("---")
-            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
-                               row_heights=[0.7, 0.3], specs=[[{"secondary_y": True}], [{"secondary_y": False}]])
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.7, 0.3], specs=[[{"secondary_y": True}], [{"secondary_y": False}]])
             x = list(range(len(result['bars'])))
             colors = ['#1565c0' if v >= 0 else '#c62828' for v in result['bars']]
             fig.add_trace(go.Bar(x=x, y=result['bars'], name='Sentiment', marker_color=colors, opacity=0.9), row=1, col=1, secondary_y=False)
@@ -1004,9 +734,8 @@ elif page == "📈 Günlük Sentiment":
             st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ OSİLATÖR ═══
-elif page == "🔄 Osilatör":
-    st.title("🔄 Osilatör — BIST100")
+elif page == "🔄 Osilator":
+    st.title("🔄 Osilator — BIST100")
     bist_df = get_bist100_index()
     if not bist_df.empty:
         close = bist_df['Close']
@@ -1016,100 +745,37 @@ elif page == "🔄 Osilatör":
         osc_vals = [float(osc_series.iloc[i]) for i in range(-period, 0)]
         price_vals = [float(close.iloc[i]) for i in range(-period, 0)]
         x = list(range(len(osc_vals)))
-        
-        st.metric("Osilatör", f"{osc_vals[-1]:.2f}" if osc_vals else "0")
+        st.metric("Osilator", f"{osc_vals[-1]:.2f}" if osc_vals else "0")
         st.markdown("---")
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=x, y=price_vals, name='BIST100', line=dict(color='#1565c0', width=2.5)), secondary_y=False)
         osc_colors = ['#2e7d32' if v >= 0 else '#c62828' for v in osc_vals]
-        fig.add_trace(go.Bar(x=x, y=osc_vals, name='Osilatör', marker_color=osc_colors, opacity=0.7), secondary_y=True)
+        fig.add_trace(go.Bar(x=x, y=osc_vals, name='Osilator', marker_color=osc_colors, opacity=0.7), secondary_y=True)
         fig.update_layout(height=450, paper_bgcolor='white', plot_bgcolor='white', legend=dict(orientation='h', y=-0.1))
         fig.update_xaxes(showgrid=False)
         fig.update_yaxes(showgrid=True, gridcolor='#eee')
         st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ BIST30 İLK 10 ═══
-elif page == "📋 BIST30 İlk 10":
-    st.title("📋 BIST30 — İlk 10")
-    st.info("⏳ Veriler çekiliyor...")
+elif page == "📋 BIST30 Ilk 10":
+    st.title("📋 BIST30 — Ilk 10")
     scores_df = get_bist30_scores()
     if not scores_df.empty:
         top10 = scores_df.sort_values('Sentiment', ascending=False).head(10).reset_index(drop=True)
         top10.index = top10.index + 1
         st.dataframe(top10, use_container_width=True)
-        fig = go.Figure(go.Bar(x=top10['Sembol'], y=top10['Sentiment'],
-            marker_color=['#1565c0' if v>=0 else '#c62828' for v in top10['Sentiment']],
-            text=top10['Karar'], textposition='outside'))
+        fig = go.Figure(go.Bar(x=top10['Sembol'], y=top10['Sentiment'], marker_color=['#1565c0' if v>=0 else '#c62828' for v in top10['Sentiment']], text=top10['Karar'], textposition='outside'))
         fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
         st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══ BIST30 SON 10 ═══
 elif page == "📋 BIST30 Son 10":
     st.title("📋 BIST30 — Son 10")
-    st.info("⏳ Veriler çekiliyor...")
     scores_df = get_bist30_scores()
     if not scores_df.empty:
         bottom10 = scores_df.sort_values('Sentiment', ascending=True).head(10).reset_index(drop=True)
         bottom10.index = bottom10.index + 1
         st.dataframe(bottom10, use_container_width=True)
-        fig = go.Figure(go.Bar(x=bottom10['Sembol'], y=bottom10['Sentiment'],
-            marker_color=['#1565c0' if v>=0 else '#c62828' for v in bottom10['Sentiment']],
-            text=bottom10['Karar'], textposition='outside'))
+        fig = go.Figure(go.Bar(x=bottom10['Sembol'], y=bottom10['Sentiment'], marker_color=['#1565c0' if v>=0 else '#c62828' for v in bottom10['Sentiment']], text=bottom10['Karar'], textposition='outside'))
         fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
         st.plotly_chart(fig, use_container_width=True)
-
-        
-# ═══ AI TAHMİN ═══
-elif page == "🧠 AI Tahmin":
-    st.title("🧠 AI Tahmin Modeli")
-    st.caption("Teknik göstergelere dayalı 3 günlük trend tahmini")
-    market_ai = st.radio("Piyasa:", ["🇹🇷 BIST", "🪙 Kripto"], horizontal=True)
-    if market_ai == "🇹🇷 BIST":
-        symbol_ai = st.selectbox("Hisse:", list(ALL_BIST.keys()))
-        yahoo_sym = ALL_BIST[symbol_ai]
-    else:
-        symbol_ai = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA)
-        yahoo_sym = None
-    if st.button("🧠 Tahmin Yap", type="primary"):
-        with st.spinner("AI analiz yapıyor..."):
-            if yahoo_sym:
-                r = predict_trend(yahoo_sym)
-            else:
-                df_ai = get_crypto_data(symbol_ai)
-                if not df_ai.empty and len(df_ai) >= 50:
-                    close = df_ai['Close']
-                    rsi_v = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
-                    macd_v = float(trend.MACD(close).macd_diff().iloc[-1])
-                    price_v = float(close.iloc[-1])
-                    avg_r = float(close.iloc[-5:].pct_change().dropna().mean())
-                    ts = 0
-                    if rsi_v < 30: ts += 3
-                    elif rsi_v > 70: ts -= 3
-                    if macd_v > 0: ts += 2
-                    else: ts -= 2
-                    if avg_r > 0: ts += 1
-                    else: ts -= 1
-                    if ts >= 3: pred = "📈 Güçlü Yükseliş"
-                    elif ts >= 1: pred = "📈 Hafif Yükseliş"
-                    elif ts <= -3: pred = "📉 Güçlü Düşüş"
-                    elif ts <= -1: pred = "📉 Hafif Düşüş"
-                    else: pred = "➡️ Yatay"
-                    conf = min(80, 55 + abs(ts) * 4)
-                    tgt = round(avg_r * 300, 1)
-                    r = {'prediction': pred, 'confidence': conf, 'target_pct': tgt, 'target_price': round(price_v*(1+tgt/100),4), 'trend_strength': ts, 'support': round(float(close.iloc[-20:].min()),4), 'resistance': round(float(close.iloc[-20:].max()),4), 'volatility': round(float(close.iloc[-5:].pct_change().dropna().std())*100,2), 'price': price_v}
-                else:
-                    r = None
-            if r:
-                pc = "#2e7d32" if "Yükseliş" in r['prediction'] else "#c62828" if "Düşüş" in r['prediction'] else "#f57c00"
-                st.markdown(f'<div style="background:{pc};color:white;border-radius:12px;padding:25px;text-align:center;margin:20px 0"><h1 style="margin:0;color:white">{r["prediction"]}</h1><p style="margin:5px 0 0;font-size:18px;color:rgba(255,255,255,0.9)">Güven: %{r["confidence"]}</p></div>', unsafe_allow_html=True)
-                st.markdown("---")
-                r1, r2, r3, r4 = st.columns(4)
-                r1.metric("Fiyat", f"{r['price']:,.2f}")
-                r2.metric("Hedef", f"{r['target_price']:,.2f}", f"%{r['target_pct']}")
-                r3.metric("Destek", f"{r['support']:,.2f}")
-                r4.metric("Direnç", f"{r['resistance']:,.2f}")
-                st.warning("⚠️ Bu tahmin yatırım tavsiyesi değildir.")
-            else:
-                st.error("Tahmin yapılamadı.")
