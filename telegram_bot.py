@@ -1,5 +1,5 @@
 """
-SentiFlow Telegram Bot — Sinyal Bildirimleri
+SentiFlow Telegram Bot v2 — Komut Destekli
 """
 
 import requests
@@ -9,18 +9,18 @@ from ta import momentum, trend
 import ccxt
 import time
 from datetime import datetime
+import json
 
-# Telegram bilgileri
 BOT_TOKEN = "8707463842:AAG5Ng2k0oEiW2vxWJdBhOwmVKMFMNvxreM"
 CHAT_ID = "8560379317"
 
-# Hisse listesi
-WATCHLIST = ['THYAO.IS', 'ASELS.IS', 'GARAN.IS', 'AKBNK.IS', 'YKBNK.IS',
-             'EREGL.IS', 'TUPRS.IS', 'PGSUS.IS', 'FROTO.IS', 'KOZAL.IS']
+WATCHLIST_BIST = ['THYAO.IS', 'ASELS.IS', 'GARAN.IS', 'AKBNK.IS', 'YKBNK.IS',
+                  'EREGL.IS', 'TUPRS.IS', 'PGSUS.IS', 'FROTO.IS', 'KOZAL.IS']
+
+WATCHLIST_CRYPTO = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT', 'BNB/USDT']
 
 
 def send_telegram(message):
-    """Telegram mesajı gönder."""
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     data = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
     try:
@@ -29,25 +29,33 @@ def send_telegram(message):
         pass
 
 
-def calc_signal(symbol):
-    """Hisse için sinyal hesapla."""
+def get_updates(offset=None):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+    params = {"timeout": 30}
+    if offset:
+        params["offset"] = offset
+    try:
+        r = requests.get(url, params=params, timeout=35)
+        return r.json().get("result", [])
+    except:
+        return []
+
+
+def calc_bist_signal(symbol):
     try:
         df = yf.Ticker(symbol).history(period="3mo", interval="1d")
         if df.empty or len(df) < 20:
             return None
-        
         close = df['Close']
         high = df['High']
         low = df['Low']
         price = float(close.iloc[-1])
         prev = float(close.iloc[-2])
         change = ((price - prev) / prev) * 100
-        
         rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
         macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
         stoch_val = float(momentum.StochasticOscillator(high, low, close).stoch().iloc[-1])
         ema21 = float(close.ewm(span=21).mean().iloc[-1])
-        
         score = 0
         if rsi_val < 30: score += 40
         elif rsi_val > 70: score -= 40
@@ -57,92 +65,134 @@ def calc_signal(symbol):
         elif stoch_val > 80: score -= 20
         if price > ema21: score += 10
         else: score -= 10
-        
         mom = ((price - float(close.iloc[-6])) / float(close.iloc[-6]) * 100)
-        
-        if score > 20 and mom > 0:
-            decision = "🟢 AL"
-        elif score < -20 and mom < 0:
-            decision = "🔴 SAT"
-        else:
-            decision = "🟡 TUT"
-        
+        if score > 20 and mom > 0: decision = "🟢 AL"
+        elif score < -20 and mom < 0: decision = "🔴 SAT"
+        else: decision = "🟡 TUT"
         name = symbol.replace('.IS', '')
-        
-        return {
-            'name': name, 'price': price, 'change': change,
-            'score': score, 'rsi': rsi_val, 'decision': decision,
-            'momentum': mom
-        }
+        return {'name': name, 'price': price, 'change': change, 'score': score, 'rsi': rsi_val, 'decision': decision, 'momentum': mom}
     except:
         return None
 
 
-def send_daily_report():
-    """Günlük rapor gönder."""
-    msg = "🌊 <b>SentiFlow — Günlük Rapor</b>\n"
+def calc_crypto_signal(symbol):
+    try:
+        ex = ccxt.binance({'enableRateLimit': True})
+        ohlcv = ex.fetch_ohlcv(symbol, '1d', limit=90)
+        df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
+        if len(df) < 20:
+            return None
+        close = df['Close']
+        high = df['High']
+        low = df['Low']
+        price = float(close.iloc[-1])
+        prev = float(close.iloc[-2])
+        change = ((price - prev) / prev) * 100
+        rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+        macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
+        score = 0
+        if rsi_val < 30: score += 40
+        elif rsi_val > 70: score -= 40
+        if macd_val > 0: score += 30
+        else: score -= 30
+        mom = ((price - float(close.iloc[-6])) / float(close.iloc[-6]) * 100)
+        if score > 20 and mom > 0: decision = "🟢 AL"
+        elif score < -20 and mom < 0: decision = "🔴 SAT"
+        else: decision = "🟡 TUT"
+        return {'name': symbol, 'price': price, 'change': change, 'score': score, 'rsi': rsi_val, 'decision': decision, 'momentum': mom}
+    except:
+        return None
+
+
+def cmd_sinyal():
+    msg = "🌊 <b>SentiFlow — Sinyal Raporu</b>\n"
     msg += f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
     msg += "━━━━━━━━━━━━━━━━━━\n\n"
-    
-    al_list = []
-    sat_list = []
-    tut_list = []
-    
-    for symbol in WATCHLIST:
-        result = calc_signal(symbol)
-        if result:
-            line = f"<b>{result['name']}</b>: ₺{result['price']:.2f} ({result['change']:+.1f}%) | RSI:{result['rsi']:.0f} | {result['decision']}"
-            
-            if "AL" in result['decision']:
-                al_list.append(line)
-            elif "SAT" in result['decision']:
-                sat_list.append(line)
-            else:
-                tut_list.append(line)
-    
-    if al_list:
-        msg += "🟢 <b>AL Sinyalleri:</b>\n"
-        msg += "\n".join(al_list) + "\n\n"
-    
-    if sat_list:
-        msg += "🔴 <b>SAT Sinyalleri:</b>\n"
-        msg += "\n".join(sat_list) + "\n\n"
-    
-    if tut_list:
-        msg += "🟡 <b>TUT:</b>\n"
-        msg += "\n".join(tut_list) + "\n\n"
-    
-    msg += "━━━━━━━━━━━━━━━━━━\n"
-    msg += "🌐 sentiflow.streamlit.app"
-    
+    for symbol in WATCHLIST_BIST:
+        r = calc_bist_signal(symbol)
+        if r:
+            msg += f"{r['decision']} <b>{r['name']}</b>: ₺{r['price']:.2f} ({r['change']:+.1f}%) RSI:{r['rsi']:.0f}\n"
+    msg += "\n🌐 sentiflow.streamlit.app"
     send_telegram(msg)
-    print(f"✅ Rapor gönderildi: {datetime.now()}")
 
 
-def send_alert(symbol, result):
-    """Önemli sinyal uyarısı gönder."""
-    msg = f"🚨 <b>SentiFlow UYARI!</b>\n\n"
-    msg += f"Sembol: <b>{result['name']}</b>\n"
-    msg += f"Fiyat: ₺{result['price']:.2f} ({result['change']:+.1f}%)\n"
-    msg += f"Sinyal: {result['decision']}\n"
-    msg += f"RSI: {result['rsi']:.0f}\n"
-    msg += f"Momentum: %{result['momentum']:.1f}\n"
-    msg += f"\n🌐 sentiflow.streamlit.app"
-    
+def cmd_bist():
+    msg = "🇹🇷 <b>BIST Sentiment</b>\n"
+    msg += f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+    al = []
+    sat = []
+    tut = []
+    for symbol in WATCHLIST_BIST:
+        r = calc_bist_signal(symbol)
+        if r:
+            line = f"<b>{r['name']}</b>: ₺{r['price']:.2f} ({r['change']:+.1f}%)"
+            if "AL" in r['decision']: al.append(line)
+            elif "SAT" in r['decision']: sat.append(line)
+            else: tut.append(line)
+    if al: msg += "🟢 <b>AL:</b>\n" + "\n".join(al) + "\n\n"
+    if sat: msg += "🔴 <b>SAT:</b>\n" + "\n".join(sat) + "\n\n"
+    if tut: msg += "🟡 <b>TUT:</b>\n" + "\n".join(tut) + "\n\n"
     send_telegram(msg)
+
+
+def cmd_kripto():
+    msg = "🪙 <b>Kripto Sentiment</b>\n"
+    msg += f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+    for symbol in WATCHLIST_CRYPTO:
+        r = calc_crypto_signal(symbol)
+        if r:
+            price_fmt = f"${r['price']:,.4f}" if r['price'] < 1 else f"${r['price']:,.2f}"
+            msg += f"{r['decision']} <b>{r['name']}</b>: {price_fmt} ({r['change']:+.1f}%) RSI:{r['rsi']:.0f}\n"
+    msg += "\n🌐 sentiflow.streamlit.app"
+    send_telegram(msg)
+
+
+def cmd_help():
+    msg = "🌊 <b>SentiFlow Bot Komutlari</b>\n\n"
+    msg += "/sinyal — Tum sinyaller\n"
+    msg += "/bist — BIST analiz\n"
+    msg += "/kripto — Kripto analiz\n"
+    msg += "/help — Bu menu\n"
+    msg += "\n🌐 sentiflow.streamlit.app"
+    send_telegram(msg)
+
+
+def handle_message(text):
+    text = text.lower().strip()
+    if text == "/start" or text == "/help":
+        cmd_help()
+    elif text == "/sinyal":
+        cmd_sinyal()
+    elif text == "/bist":
+        cmd_bist()
+    elif text == "/kripto":
+        cmd_kripto()
+    else:
+        send_telegram("Bilinmeyen komut. /help yazin.")
 
 
 if __name__ == "__main__":
-    print("🌊 SentiFlow Telegram Bot Başlatıldı!")
-    print("📡 Günlük rapor gönderiliyor...\n")
+    print("🌊 SentiFlow Telegram Bot v2 Baslatildi!")
+    print("Komutlar: /sinyal /bist /kripto /help")
+    print("Ctrl+C ile durdur.\n")
     
-    # İlk raporu hemen gönder
-    send_daily_report()
+    # Baslangic mesaji
+    send_telegram("🌊 <b>SentiFlow Bot aktif!</b>\n\nKomutlar:\n/sinyal — Tum sinyaller\n/bist — BIST analiz\n/kripto — Kripto analiz\n/help — Yardim")
     
-    print("\n✅ Bot çalışıyor! Ctrl+C ile durdur.")
-    print("💡 Her 6 saatte bir rapor gönderilecek.\n")
-    
-    # Her 6 saatte rapor
+    offset = None
     while True:
-        time.sleep(21600)  # 6 saat
-        send_daily_report()
+        try:
+            updates = get_updates(offset)
+            for update in updates:
+                offset = update["update_id"] + 1
+                msg = update.get("message", {})
+                text = msg.get("text", "")
+                if text:
+                    print(f"Komut: {text}")
+                    handle_message(text)
+            time.sleep(2)
+        except KeyboardInterrupt:
+            print("\nBot durduruldu.")
+            break
+        except:
+            time.sleep(5)
