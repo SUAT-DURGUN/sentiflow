@@ -17,6 +17,19 @@ from xml.etree import ElementTree
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
 
+# Mobil uyumluluk CSS
+st.markdown("""<meta name="viewport" content="width=device-width, initial-scale=1.0">
+&lt;style>
+    .block-container {padding: 1rem 1rem !important;}
+    @media (max-width: 768px) {
+        .block-container {padding: 0.5rem !important;}
+        h1 {font-size: 1.5rem !important;}
+        h2 {font-size: 1.2rem !important;}
+        [data-testid="stMetric"] {padding: 8px !important;}
+        [data-testid="stMetricValue"] {font-size: 18px !important;}
+    }
+&lt;/style>""", unsafe_allow_html=True)
+
 # ════════════════════════════
 # VERİLER
 # ════════════════════════════
@@ -155,6 +168,65 @@ def get_kap_news():
 # SENTIMENT HESAPLAMA
 # ════════════════════════════
 
+def predict_trend(symbol):
+    """AI tahmin modeli."""
+    try:
+        df = yf.Ticker(symbol).history(period="6mo", interval="1d")
+        if df.empty or len(df) < 50:
+            return None
+        
+        close = df['Close']
+        price = float(close.iloc[-1])
+        rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+        macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
+        ema9 = float(close.ewm(span=9).mean().iloc[-1])
+        ema21 = float(close.ewm(span=21).mean().iloc[-1])
+        ema50 = float(close.ewm(span=50).mean().iloc[-1])
+        
+        last5 = close.iloc[-5:]
+        avg_return = float(last5.pct_change().dropna().mean())
+        volatility = float(last5.pct_change().dropna().std())
+        
+        ts = 0
+        if rsi_val < 30: ts += 3
+        elif rsi_val > 70: ts -= 3
+        elif rsi_val > 50: ts += 1
+        else: ts -= 1
+        
+        if macd_val > 0: ts += 2
+        else: ts -= 2
+        
+        if ema9 > ema21: ts += 1
+        else: ts -= 1
+        
+        if price > ema50: ts += 1
+        else: ts -= 1
+        
+        if avg_return > 0.005: ts += 2
+        elif avg_return < -0.005: ts -= 2
+        
+        if ts >= 4: prediction = "📈 Güçlü Yükseliş"
+        elif ts >= 2: prediction = "📈 Hafif Yükseliş"
+        elif ts <= -4: prediction = "📉 Güçlü Düşüş"
+        elif ts <= -2: prediction = "📉 Hafif Düşüş"
+        else: prediction = "➡️ Yatay"
+        
+        confidence = min(85, 55 + abs(ts) * 4)
+        target_pct = round(avg_return * 300, 1)
+        target_price = round(price * (1 + target_pct / 100), 2)
+        support = round(float(close.iloc[-20:].min()), 2)
+        resistance = round(float(close.iloc[-20:].max()), 2)
+        
+        return {
+            'prediction': prediction, 'confidence': confidence,
+            'target_pct': target_pct, 'target_price': target_price,
+            'trend_strength': ts, 'support': support,
+            'resistance': resistance,
+            'volatility': round(volatility * 100, 2),
+            'price': price,
+        }
+    except:
+        return None
 def calc_sentiment(df):
     if df is None or df.empty or len(df) < 20:
         return None
@@ -327,6 +399,7 @@ with st.sidebar:
     
     page = st.radio("📍 Menü", [
         "🏠 Ana Sayfa",
+        "🧠 AI Tahmin",
         "📊 Hisse Analiz",
         "🪙 Kripto Analiz",
         "🔔 Sinyal Merkezi",
@@ -986,3 +1059,57 @@ elif page == "📋 BIST30 Son 10":
             text=bottom10['Karar'], textposition='outside'))
         fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
         st.plotly_chart(fig, use_container_width=True)
+
+        
+# ═══ AI TAHMİN ═══
+elif page == "🧠 AI Tahmin":
+    st.title("🧠 AI Tahmin Modeli")
+    st.caption("Teknik göstergelere dayalı 3 günlük trend tahmini")
+    market_ai = st.radio("Piyasa:", ["🇹🇷 BIST", "🪙 Kripto"], horizontal=True)
+    if market_ai == "🇹🇷 BIST":
+        symbol_ai = st.selectbox("Hisse:", list(ALL_BIST.keys()))
+        yahoo_sym = ALL_BIST[symbol_ai]
+    else:
+        symbol_ai = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA)
+        yahoo_sym = None
+    if st.button("🧠 Tahmin Yap", type="primary"):
+        with st.spinner("AI analiz yapıyor..."):
+            if yahoo_sym:
+                r = predict_trend(yahoo_sym)
+            else:
+                df_ai = get_crypto_data(symbol_ai)
+                if not df_ai.empty and len(df_ai) >= 50:
+                    close = df_ai['Close']
+                    rsi_v = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+                    macd_v = float(trend.MACD(close).macd_diff().iloc[-1])
+                    price_v = float(close.iloc[-1])
+                    avg_r = float(close.iloc[-5:].pct_change().dropna().mean())
+                    ts = 0
+                    if rsi_v < 30: ts += 3
+                    elif rsi_v > 70: ts -= 3
+                    if macd_v > 0: ts += 2
+                    else: ts -= 2
+                    if avg_r > 0: ts += 1
+                    else: ts -= 1
+                    if ts >= 3: pred = "📈 Güçlü Yükseliş"
+                    elif ts >= 1: pred = "📈 Hafif Yükseliş"
+                    elif ts <= -3: pred = "📉 Güçlü Düşüş"
+                    elif ts <= -1: pred = "📉 Hafif Düşüş"
+                    else: pred = "➡️ Yatay"
+                    conf = min(80, 55 + abs(ts) * 4)
+                    tgt = round(avg_r * 300, 1)
+                    r = {'prediction': pred, 'confidence': conf, 'target_pct': tgt, 'target_price': round(price_v*(1+tgt/100),4), 'trend_strength': ts, 'support': round(float(close.iloc[-20:].min()),4), 'resistance': round(float(close.iloc[-20:].max()),4), 'volatility': round(float(close.iloc[-5:].pct_change().dropna().std())*100,2), 'price': price_v}
+                else:
+                    r = None
+            if r:
+                pc = "#2e7d32" if "Yükseliş" in r['prediction'] else "#c62828" if "Düşüş" in r['prediction'] else "#f57c00"
+                st.markdown(f'<div style="background:{pc};color:white;border-radius:12px;padding:25px;text-align:center;margin:20px 0"><h1 style="margin:0;color:white">{r["prediction"]}</h1><p style="margin:5px 0 0;font-size:18px;color:rgba(255,255,255,0.9)">Güven: %{r["confidence"]}</p></div>', unsafe_allow_html=True)
+                st.markdown("---")
+                r1, r2, r3, r4 = st.columns(4)
+                r1.metric("Fiyat", f"{r['price']:,.2f}")
+                r2.metric("Hedef", f"{r['target_price']:,.2f}", f"%{r['target_pct']}")
+                r3.metric("Destek", f"{r['support']:,.2f}")
+                r4.metric("Direnç", f"{r['resistance']:,.2f}")
+                st.warning("⚠️ Bu tahmin yatırım tavsiyesi değildir.")
+            else:
+                st.error("Tahmin yapılamadı.")
