@@ -137,7 +137,7 @@ def get_bist30_index():
         return yf.Ticker("XU030.IS").history(period="3mo", interval="1d")
     except:
         return pd.DataFrame()
-    @st.cache_data(ttl=300)
+@st.cache_data(ttl=300)
 def get_kap_news():
     """KAP haberlerini çek."""
     try:
