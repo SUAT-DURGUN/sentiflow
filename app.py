@@ -11,6 +11,8 @@ import numpy as np
 from ta import momentum, trend
 import ccxt
 from datetime import datetime
+import requests
+from xml.etree import ElementTree
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
 
@@ -135,7 +137,33 @@ def get_bist30_index():
         return yf.Ticker("XU030.IS").history(period="3mo", interval="1d")
     except:
         return pd.DataFrame()
-
+    @st.cache_data(ttl=300)
+def get_kap_news():
+    """KAP haberlerini çek."""
+    try:
+        url = "https://www.kap.org.tr/tr/rss/son-bildirimler"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=10)
+        root = ElementTree.fromstring(response.content)
+        
+        news = []
+        for item in root.findall('.//item')[:15]:
+            title = item.find('title').text if item.find('title') is not None else ""
+            link = item.find('link').text if item.find('link') is not None else ""
+            pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ""
+            
+            # Sembol çıkar (genelde başlıkta olur)
+            symbol = title.split(' - ')[0].strip() if ' - ' in title else ""
+            
+            news.append({
+                'symbol': symbol,
+                'title': title,
+                'link': link,
+                'date': pub_date[:16] if pub_date else "",
+            })
+        return news
+    except:
+        return []
 
 # ════════════════════════════
 # SENTIMENT HESAPLAMA
@@ -281,13 +309,14 @@ with st.sidebar:
     st.caption("Piyasa Sentiment Analiz Platformu")
     st.markdown("---")
     
-    page = st.radio("📍 Menü", [
+        page = st.radio("📍 Menü", [
         "🏠 Ana Sayfa",
         "📊 Hisse Analiz",
         "🪙 Kripto Analiz",
         "🇺🇸 S&P / NASDAQ",
         "🇪🇺 Avrupa",
         "🥇 Altın & Döviz",
+        "📰 KAP Haberleri",
         "📋 Hisse Tablosu",
         "🔍 Akıllı Filtre",
         "📈 Günlük Sentiment",
@@ -557,9 +586,18 @@ if page == "🏠 Ana Sayfa":
     st.markdown("---")
     
     # Analiz & Haber
+        # Analiz & Haber
     st.subheader("📰 Analiz & Haber")
     st.caption("Gelişmelerden anında haberdar ol")
-    st.info("📰 KAP haberleri ve analizler yakında eklenecek!")
+    
+    news = get_kap_news()
+    if news:
+        for item in news[:5]:
+            symbol_badge = f"**{item['symbol']}**" if item['symbol'] else ""
+            st.markdown(f"{symbol_badge} — {item['title']}")
+        st.caption("👉 Tümünü görmek için sol menüden 'KAP Haberleri' seçin")
+    else:
+        st.info("📰 KAP haberleri yüklenemiyor.")
 
 # ═══ HİSSE ANALİZ ═══
 elif page == "📊 Hisse Analiz":
@@ -1066,3 +1104,28 @@ elif page == "📋 BIST30 Son 10":
         ))
         fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
         st.plotly_chart(fig, use_container_width=True)
+
+        # ═══ KAP HABERLERİ ═══
+elif page == "📰 KAP Haberleri":
+    st.title("📰 KAP Haberleri")
+    st.caption("Kamuyu Aydınlatma Platformu — Son Bildirimler")
+    
+    news = get_kap_news()
+    
+    if news:
+        for item in news:
+            symbol_badge = f"<span style='background:#1565c0;color:white;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600'>{item['symbol']}</span>" if item['symbol'] else ""
+            
+            st.markdown(f"""
+            <div style="background:white;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #eee;border-left:4px solid #1565c0">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    {symbol_badge}
+                    <span style="color:#999;font-size:12px">{item['date']}</span>
+                </div>
+                <div style="font-size:14px;color:#333;line-height:1.5">{item['title']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.warning("KAP haberleri şu an yüklenemiyor. Lütfen daha sonra tekrar deneyin.")
+        st.info("💡 Alternatif: kap.org.tr adresinden güncel bildirimleri takip edebilirsiniz.")
+
