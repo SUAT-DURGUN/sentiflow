@@ -593,9 +593,9 @@ if page == "🏠 Ana Sayfa":
     news = get_kap_news()
     if news:
         for item in news[:5]:
-            symbol_badge = f"**{item['symbol']}**" if item['symbol'] else ""
-            st.markdown(f"{symbol_badge} — {item['title']}")
+            st.markdown(f"**{item['symbol']}** — {item['title']}")
         st.caption("👉 Tümünü görmek için sol menüden 'KAP Haberleri' seçin")
+
     else:
         st.info("📰 KAP haberleri yüklenemiyor.")
 
@@ -1108,24 +1108,20 @@ elif page == "📋 BIST30 Son 10":
         # ═══ KAP HABERLERİ ═══
 elif page == "📰 KAP Haberleri":
     st.title("📰 KAP Haberleri")
-    st.caption("Kamuyu Aydınlatma Platformu — Son Bildirimler")
+    st.caption("Güncel piyasa haberleri ve bildirimleri")
     
     news = get_kap_news()
     
     if news:
         for item in news:
-            symbol_badge = f"<span style='background:#1565c0;color:white;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600'>{item['symbol']}</span>" if item['symbol'] else ""
-            
             st.markdown(f"""
             <div style="background:white;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #eee;border-left:4px solid #1565c0">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    {symbol_badge}
+                    <span style="background:#1565c0;color:white;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">{item['symbol']}</span>
                     <span style="color:#999;font-size:12px">{item['date']}</span>
                 </div>
                 <div style="font-size:14px;color:#333;line-height:1.5">{item['title']}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.warning("KAP haberleri şu an yüklenemiyor. Lütfen daha sonra tekrar deneyin.")
-        st.info("💡 Alternatif: kap.org.tr adresinden güncel bildirimleri takip edebilirsiniz.")
-
+        st.warning("Haberler yüklenemiyor.")
