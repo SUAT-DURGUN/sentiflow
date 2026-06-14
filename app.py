@@ -313,6 +313,8 @@ with st.sidebar:
     st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
+    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
+    st.markdown("---")
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 if page == "🏠 Ana Sayfa":

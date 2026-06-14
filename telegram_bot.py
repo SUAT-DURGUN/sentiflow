@@ -204,7 +204,7 @@ if __name__ == "__main__":
                 if text:
                     print(f"Komut: {text}")
                     handle_message(text)
-                        time.sleep(2)
+                    time.sleep(2)
             # Her 30 dakikada uyari kontrol
             if int(time.time()) % 1800 < 5:
                 check_alerts()
