@@ -318,21 +318,20 @@ if page == "🏠 Ana Sayfa":
             gauge_val = int((bist_result['score'] + 100) / 2)
             gauge_val = max(0, min(100, gauge_val))
             
-            # Güç seviyesi
             if gauge_val >= 75: guc_text = "Güçlü"
             elif gauge_val >= 50: guc_text = "Normal"
             elif gauge_val >= 25: guc_text = "Zayıf"
             else: guc_text = "Çok Zayıf"
             
             st.markdown(f"""
-            <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #eee">
-                <h4 style="margin:0">Sentiment Güç İndikatörü</h4>
-                <div style="display:flex;align-items:center;gap:20px;margin-top:10px">
-                    <div style="text-align:center">
-                        <span style="font-size:48px;font-weight:bold;color:#1565c0">{gauge_val}</span><br>
-                        <span style="color:#666">{guc_text}</span>
+            <div style="background:linear-gradient(135deg,#f8f9fa,#e3f2fd);border-radius:16px;padding:24px;margin-bottom:20px;border:1px solid #bbdefb">
+                <div style="display:flex;align-items:center;gap:20px">
+                    <div style="text-align:center;min-width:100px">
+                        <div style="font-size:14px;color:#666;margin-bottom:5px">Sentiment Güç</div>
+                        <div style="font-size:52px;font-weight:800;color:#1565c0">{gauge_val}</div>
+                        <div style="background:{'#c62828' if gauge_val<25 else '#e65100' if gauge_val<50 else '#2e7d32' if gauge_val<75 else '#1565c0'};color:white;border-radius:20px;padding:4px 12px;font-size:12px;display:inline-block">{guc_text}</div>
                     </div>
-                    <div style="flex:1;color:#555;font-size:14px">
+                    <div style="flex:1;color:#555;font-size:14px;line-height:1.6">
                         Piyasaların genel sentiment gücünü gösteren indikatördür. 
                         Yüksek değer güçlü piyasa eğilimini temsil eder.
                     </div>
@@ -340,57 +339,171 @@ if page == "🏠 Ana Sayfa":
             </div>
             """, unsafe_allow_html=True)
     
-    # Piyasalar Kartları
-    st.subheader("📈 Piyasalar")
+    # Piyasalar + Favori Semboller Tab
+    piyasa_tab, fav_tab = st.tabs(["📈 Piyasalar", "⭐ Favori Semboller"])
     
-    p1, p2, p3, p4 = st.columns(4)
+    with piyasa_tab:
+        # Endeks kartları (mini grafik ile)
+        pc1, pc2, pc3, pc4 = st.columns(4)
+        
+        with pc1:
+            if not bist_df.empty:
+                price = float(bist_df['Close'].iloc[-1])
+                prev = float(bist_df['Close'].iloc[-2])
+                chg = ((price - prev) / prev) * 100
+                mini_data = bist_df['Close'].tolist()[-20:]
+                fig_m = go.Figure(go.Scatter(y=mini_data, mode='lines',
+                    line=dict(color='#2e7d32' if chg>=0 else '#c62828', width=1.5)))
+                fig_m.update_layout(height=50, margin=dict(l=0,r=0,t=0,b=0),
+                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.markdown(f"""
+                <div style="background:white;border-radius:12px;padding:12px;border:1px solid #eee">
+                    <div style="font-size:13px;color:#666">BIST100</div>
+                    <div style="font-size:18px;font-weight:700">{price:,.0f}</div>
+                    <div style="color:{'#2e7d32' if chg>=0 else '#c62828'};font-size:13px">▲ %{chg:.1f}</div>
+                </div>""", unsafe_allow_html=True)
+                st.plotly_chart(fig_m, use_container_width=True, key="bist100_mini")
+        
+        with pc2:
+            if not bist30_df.empty:
+                price30 = float(bist30_df['Close'].iloc[-1])
+                prev30 = float(bist30_df['Close'].iloc[-2])
+                chg30 = ((price30 - prev30) / prev30) * 100
+                mini_data30 = bist30_df['Close'].tolist()[-20:]
+                fig_m30 = go.Figure(go.Scatter(y=mini_data30, mode='lines',
+                    line=dict(color='#2e7d32' if chg30>=0 else '#c62828', width=1.5)))
+                fig_m30.update_layout(height=50, margin=dict(l=0,r=0,t=0,b=0),
+                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.markdown(f"""
+                <div style="background:white;border-radius:12px;padding:12px;border:1px solid #eee">
+                    <div style="font-size:13px;color:#666">BIST30</div>
+                    <div style="font-size:18px;font-weight:700">{price30:,.0f}</div>
+                    <div style="color:{'#2e7d32' if chg30>=0 else '#c62828'};font-size:13px">▲ %{chg30:.1f}</div>
+                </div>""", unsafe_allow_html=True)
+                st.plotly_chart(fig_m30, use_container_width=True, key="bist30_mini")
+        
+        with pc3:
+            if bist_result:
+                st.markdown(f"""
+                <div style="background:white;border-radius:12px;padding:12px;border:1px solid #eee">
+                    <div style="font-size:13px;color:#666">Sentiment</div>
+                    <div style="font-size:18px;font-weight:700">{bist_result['sent_puan']:.2f}</div>
+                    <div style="color:{'#2e7d32' if bist_result['daily_change']>=0 else '#c62828'};font-size:13px">▼ %{bist_result['daily_change']:.1f}</div>
+                </div>""", unsafe_allow_html=True)
+                # Mini sentiment bar
+                mini_bars = bist_result['bars'][-20:]
+                colors_m = ['#1565c0' if v>=0 else '#c62828' for v in mini_bars]
+                fig_ms = go.Figure(go.Bar(y=mini_bars, marker_color=colors_m))
+                fig_ms.update_layout(height=50, margin=dict(l=0,r=0,t=0,b=0),
+                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig_ms, use_container_width=True, key="sent_mini")
+        
+        with pc4:
+            if bist_result:
+                st.markdown(f"""
+                <div style="background:white;border-radius:12px;padding:12px;border:1px solid #eee">
+                    <div style="font-size:13px;color:#666">Momentum</div>
+                    <div style="font-size:18px;font-weight:700">{bist_result['momentum']:.2f}</div>
+                    <div style="color:#666;font-size:13px">&nbsp;</div>
+                </div>""", unsafe_allow_html=True)
+                mini_mom = bist_result['mom_bars'][-20:]
+                colors_mm = ['#1565c0' if v>=0 else '#c62828' for v in mini_mom]
+                fig_mm = go.Figure(go.Bar(y=mini_mom, marker_color=colors_mm))
+                fig_mm.update_layout(height=50, margin=dict(l=0,r=0,t=0,b=0),
+                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                st.plotly_chart(fig_mm, use_container_width=True, key="mom_mini")
     
-    with p1:
-        if not bist_df.empty:
-            price = float(bist_df['Close'].iloc[-1])
-            prev = float(bist_df['Close'].iloc[-2])
-            chg = ((price - prev) / prev) * 100
-            st.metric("BIST100", f"{price:,.0f}", f"%{chg:.1f}")
-    
-    with p2:
-        if not bist30_df.empty:
-            price30 = float(bist30_df['Close'].iloc[-1])
-            prev30 = float(bist30_df['Close'].iloc[-2])
-            chg30 = ((price30 - prev30) / prev30) * 100
-            st.metric("BIST30", f"{price30:,.0f}", f"%{chg30:.1f}")
-    
-    with p3:
-        if bist_result:
-            st.metric("Sentiment", f"{bist_result['sent_puan']:.2f}", f"%{bist_result['daily_change']:.1f}")
-    
-    with p4:
-        if bist_result:
-            st.metric("Momentum", f"{bist_result['momentum']:.2f}", "")
+    with fav_tab:
+        st.info("⭐ Favori sembollerinizi yakında ekleyebileceksiniz!")
     
     st.markdown("---")
     
-    # Alıcı Yoğunluğu Artanlar
+    # İlk 10 Listeleri
+    st.subheader("📋 İlk 10 Listeleri")
+    st.caption("BIST 30 ve BIST 70 için sentiment sıralamasına göre ilk 10 sembol")
+    
+    # BIST30 / BIST70 seçimi + Liste/Yatay görünüm
+    list_col1, list_col2 = st.columns([3, 1])
+    with list_col1:
+        bist_sec = st.radio("", ["BIST 30", "BIST 70"], horizontal=True, key="bist_sec")
+    with list_col2:
+        view_mode = st.radio("", ["📊", "☰"], horizontal=True, key="view_mode", help="Grafik / Liste")
+    
+    scores = get_bist30_scores() if bist_sec == "BIST 30" else get_all_bist_scores()
+    
+    if not scores.empty:
+        top_list = scores.sort_values('Sentiment', ascending=False).head(10)
+        
+        if view_mode == "📊":
+            # Yatay kart görünümü (4'lü)
+            rows = [top_list.iloc[i:i+4] for i in range(0, len(top_list), 4)]
+            for row_data in rows:
+                cols = st.columns(4)
+                for i, (_, row) in enumerate(row_data.iterrows()):
+                    if i < 4:
+                        with cols[i]:
+                            color = "#2e7d32" if row['Gün%'] >= 0 else "#c62828"
+                            arrow = "▲" if row['Gün%'] >= 0 else "▼"
+                            st.markdown(f"""
+                            <div style="background:white;border-radius:12px;padding:16px;border:1px solid #eee;margin-bottom:10px">
+                                <div style="font-weight:700;font-size:15px;margin-bottom:8px">{row['Sembol']}</div>
+                                <div style="color:{color};font-size:22px;font-weight:700">{row['Fiyat']}</div>
+                                <div style="color:{color};font-size:13px">{arrow} %{row['Gün%']:.2f}</div>
+                                <div style="margin-top:8px;font-size:12px;color:#666">Sent: {row['Sent.Puan']:.1f} | {row['Karar']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+        else:
+            # Liste görünümü
+            display_df = top_list[['Sembol', 'Fiyat', 'Gün%', 'Sent.Puan', 'Karar']].reset_index(drop=True)
+            display_df.index = display_df.index + 1
+            st.dataframe(display_df, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Alıcı Yoğunluğu
     st.subheader("🟢 Alıcı Yoğunluğu Artanlar")
     st.caption("Son dönemde alıcı baskısı güçlenen semboller")
     
-    scores = get_bist30_scores()
     if not scores.empty:
         buyers = scores.sort_values('Momentum%', ascending=False).head(4)
         bcols = st.columns(4)
         for i, (_, row) in enumerate(buyers.iterrows()):
             with bcols[i]:
                 color = "#2e7d32" if row['Gün%'] >= 0 else "#c62828"
+                arrow = "▲" if row['Gün%'] >= 0 else "▼"
+                # Mini grafik verisi
+                try:
+                    mini_df = get_bist_data(row['Sembol'])
+                    if not mini_df.empty:
+                        mini_prices = mini_df['Close'].tolist()[-15:]
+                    else:
+                        mini_prices = [0]
+                except:
+                    mini_prices = [0]
+                
                 st.markdown(f"""
-                <div style="background:white;border-radius:12px;padding:15px;border:1px solid #eee;text-align:center">
-                    <strong>{row['Sembol']}</strong><br>
-                    <span style="color:{color};font-size:20px;font-weight:bold">{row['Fiyat']}</span><br>
-                    <span style="color:{color};font-size:14px">%{row['Gün%']:.2f}</span>
+                <div style="background:white;border-radius:12px;padding:16px;border:1px solid #eee">
+                    <div style="font-weight:700;font-size:15px">{row['Sembol']}</div>
+                    <div style="color:{color};font-size:22px;font-weight:700">{row['Fiyat']}</div>
+                    <div style="color:{color};font-size:13px">{arrow} %{row['Gün%']:.2f}</div>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                if len(mini_prices) > 1:
+                    fig_card = go.Figure(go.Scatter(y=mini_prices, mode='lines',
+                        line=dict(color=color, width=1.5)))
+                    fig_card.update_layout(height=40, margin=dict(l=0,r=0,t=0,b=0),
+                        xaxis=dict(visible=False), yaxis=dict(visible=False),
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_card, use_container_width=True, key=f"buyer_{row['Sembol']}")
     
-    st.markdown("")
+    st.markdown("---")
     
-    # Satıcı Yoğunluğu Artanlar
+    # Satıcı Yoğunluğu
     st.subheader("🔴 Satıcı Yoğunluğu Artanlar")
     st.caption("Son dönemde satıcı baskısı güçlenen semboller")
     
@@ -400,29 +513,53 @@ if page == "🏠 Ana Sayfa":
         for i, (_, row) in enumerate(sellers.iterrows()):
             with scols[i]:
                 color = "#2e7d32" if row['Gün%'] >= 0 else "#c62828"
+                arrow = "▲" if row['Gün%'] >= 0 else "▼"
+                try:
+                    mini_df = get_bist_data(row['Sembol'])
+                    if not mini_df.empty:
+                        mini_prices = mini_df['Close'].tolist()[-15:]
+                    else:
+                        mini_prices = [0]
+                except:
+                    mini_prices = [0]
+                
                 st.markdown(f"""
-                <div style="background:white;border-radius:12px;padding:15px;border:1px solid #eee;text-align:center">
-                    <strong>{row['Sembol']}</strong><br>
-                    <span style="color:{color};font-size:20px;font-weight:bold">{row['Fiyat']}</span><br>
-                    <span style="color:{color};font-size:14px">%{row['Gün%']:.2f}</span>
+                <div style="background:white;border-radius:12px;padding:16px;border:1px solid #eee">
+                    <div style="font-weight:700;font-size:15px">{row['Sembol']}</div>
+                    <div style="color:{color};font-size:22px;font-weight:700">{row['Fiyat']}</div>
+                    <div style="color:{color};font-size:13px">{arrow} %{row['Gün%']:.2f}</div>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                if len(mini_prices) > 1:
+                    fig_card = go.Figure(go.Scatter(y=mini_prices, mode='lines',
+                        line=dict(color=color, width=1.5)))
+                    fig_card.update_layout(height=40, margin=dict(l=0,r=0,t=0,b=0),
+                        xaxis=dict(visible=False), yaxis=dict(visible=False),
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig_card, use_container_width=True, key=f"seller_{row['Sembol']}")
     
     st.markdown("---")
     
     # Altın & Döviz
     st.subheader("💰 Altın & Döviz")
     gc1, gc2, gc3, gc4 = st.columns(4)
-    quick_list = ['💵 USD/TRY', '💶 EUR/TRY', '🥇 Altın (Ons/USD)', '🥈 Gümüş (Ons/USD)']
-    for i, name in enumerate(quick_list):
+    quick_list = [('💵 USD/TRY','USDTRY=X'), ('💶 EUR/TRY','EURTRY=X'), ('🥇 Altın','GC=F'), ('🥈 Gümüş','SI=F')]
+    for i, (name, sym) in enumerate(quick_list):
         with [gc1, gc2, gc3, gc4][i]:
-            df_c = get_stock_data(COMMODITIES[name])
+            df_c = get_stock_data(sym)
             if not df_c.empty:
                 p = float(df_c['Close'].iloc[-1])
                 prev_p = float(df_c['Close'].iloc[-2]) if len(df_c) > 1 else p
                 chg = ((p - prev_p) / prev_p) * 100
                 st.metric(name, f"{p:,.2f}", f"{chg:+.2f}%")
-
+    
+    st.markdown("---")
+    
+    # Analiz & Haber
+    st.subheader("📰 Analiz & Haber")
+    st.caption("Gelişmelerden anında haberdar ol")
+    st.info("📰 KAP haberleri ve analizler yakında eklenecek!")
 
 # ═══ HİSSE ANALİZ ═══
 elif page == "📊 Hisse Analiz":
