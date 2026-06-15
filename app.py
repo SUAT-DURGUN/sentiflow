@@ -312,7 +312,7 @@ with st.sidebar:
     st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🟢 Aktif Degisimler", "📊 Grid Grafik", "🎯 Dip Donusu", "📈 Backtest", "📋 Haftalik Rapor", "📐 Fibonacci/Bollinger", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
+    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🟢 Aktif Degisimler", "📊 Grid Grafik", "🎯 Dip Donusu", "📈 Backtest", "📋 Haftalik Rapor", "📐 Fibonacci/Bollinger", "📐 Formasyonlar", "🔴 Divergence", "📊 10 Gun Heatmap", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
     st.markdown("---")
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
@@ -1225,3 +1225,212 @@ elif page == "📐 Fibonacci/Bollinger":
         st.plotly_chart(fig_fb, use_container_width=True)
     else:
         st.error("Yeterli veri yok.")
+
+
+elif page == "📐 Formasyonlar":
+    st.title("📐 Teknik Formasyonlar")
+    st.caption("OBO, Flama, Cikan/Dusen Trend, Bayrak tespiti")
+    form_market = st.radio("Piyasa:", ["BIST", "Kripto"], horizontal=True, key="form_m")
+    if form_market == "BIST":
+        form_sym = st.selectbox("Hisse:", list(ALL_BIST.keys()), key="form_sym")
+        df_form = get_bist_data(form_sym)
+        cur = "₺"
+    else:
+        form_sym = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA, key="form_sym_c")
+        df_form = get_crypto_data(form_sym)
+        cur = "$"
+    if not df_form.empty and len(df_form) >= 30:
+        close = df_form['Close']
+        high = df_form['High']
+        low = df_form['Low']
+        price = float(close.iloc[-1])
+        prices = close.tolist()
+        highs = high.tolist()
+        lows = low.tolist()
+        n = len(prices)
+        formasyonlar = []
+        # Cikan Trend (Higher Highs + Higher Lows)
+        last10_highs = highs[-10:]
+        last10_lows = lows[-10:]
+        hh_count = sum(1 for i in range(1, len(last10_highs)) if last10_highs[i] > last10_highs[i-1])
+        hl_count = sum(1 for i in range(1, len(last10_lows)) if last10_lows[i] > last10_lows[i-1])
+        if hh_count >= 6 and hl_count >= 6:
+            formasyonlar.append({'Formasyon': '📈 Cikan Trend (Uptrend)', 'Guc': 'Guclu', 'Sinyal': '🟢 AL', 'Aciklama': 'Artan tepeler + artan dipler. Yukselis devam edebilir.'})
+        elif hh_count >= 4 and hl_count >= 4:
+            formasyonlar.append({'Formasyon': '📈 Cikan Trend (Uptrend)', 'Guc': 'Orta', 'Sinyal': '🟡 TUT', 'Aciklama': 'Hafif yukselis trendi var.'})
+        # Dusen Trend (Lower Highs + Lower Lows)
+        lh_count = sum(1 for i in range(1, len(last10_highs)) if last10_highs[i] < last10_highs[i-1])
+        ll_count = sum(1 for i in range(1, len(last10_lows)) if last10_lows[i] < last10_lows[i-1])
+        if lh_count >= 6 and ll_count >= 6:
+            formasyonlar.append({'Formasyon': '📉 Dusen Trend (Downtrend)', 'Guc': 'Guclu', 'Sinyal': '🔴 SAT', 'Aciklama': 'Azalan tepeler + azalan dipler. Dusus devam edebilir.'})
+        elif lh_count >= 4 and ll_count >= 4:
+            formasyonlar.append({'Formasyon': '📉 Dusen Trend (Downtrend)', 'Guc': 'Orta', 'Sinyal': '🟡 DİKKAT', 'Aciklama': 'Hafif dusus trendi var.'})
+        # OBO (Omuz-Bas-Omuz) kontrolu
+        if n >= 30:
+            seg = prices[-30:]
+            left_shoulder = max(seg[0:10])
+            head = max(seg[10:20])
+            right_shoulder = max(seg[20:30])
+            neckline = min(min(seg[8:12]), min(seg[18:22]))
+            if head > left_shoulder and head > right_shoulder:
+                shoulder_diff = abs(left_shoulder - right_shoulder) / head * 100
+                if shoulder_diff < 5:
+                    formasyonlar.append({'Formasyon': '🔴 OBO (Omuz-Bas-Omuz)', 'Guc': 'Guclu', 'Sinyal': '🔴 SAT', 'Aciklama': f'Boyun cizgisi: {cur}{neckline:.2f}. Kirilirsa sert dusus gelebilir.'})
+        # Ters OBO
+        if n >= 30:
+            seg = prices[-30:]
+            left_shoulder = min(seg[0:10])
+            head = min(seg[10:20])
+            right_shoulder = min(seg[20:30])
+            neckline = max(max(seg[8:12]), max(seg[18:22]))
+            if head < left_shoulder and head < right_shoulder:
+                shoulder_diff = abs(left_shoulder - right_shoulder) / head * 100
+                if shoulder_diff < 5:
+                    formasyonlar.append({'Formasyon': '🟢 Ters OBO', 'Guc': 'Guclu', 'Sinyal': '🟢 AL', 'Aciklama': f'Boyun cizgisi: {cur}{neckline:.2f}. Kirilirsa sert yukselis gelebilir.'})
+        # Flama / Ucgen (Daralan volatilite)
+        recent_range = [highs[-i] - lows[-i] for i in range(1, 11)]
+        if all(recent_range[i] <= recent_range[i+1] for i in range(len(recent_range)-1)):
+            formasyonlar.append({'Formasyon': '🚩 Flama / Ucgen', 'Guc': 'Orta', 'Sinyal': '⚡ PATLAMA YAKIN', 'Aciklama': 'Volatilite daraliyor. Sert hareket yakinda gelebilir (yon belirsiz).'})
+        elif len([r for r in recent_range[:5] if r < sum(recent_range[5:])/5]) >= 3:
+            formasyonlar.append({'Formasyon': '🚩 Flama / Ucgen', 'Guc': 'Zayif', 'Sinyal': '⚡ BEKLE', 'Aciklama': 'Fiyat daraliyor, kirilim beklenebilir.'})
+        # Bayrak (Flag) - Ani yukselis sonrasi yatay hareket
+        if n >= 20:
+            pre_move = (prices[-20] - prices[-30]) / prices[-30] * 100 if n >= 30 else 0
+            recent_move = (prices[-1] - prices[-10]) / prices[-10] * 100
+            if pre_move > 5 and abs(recent_move) < 2:
+                formasyonlar.append({'Formasyon': '🏁 Yukari Bayrak', 'Guc': 'Orta', 'Sinyal': '🟢 AL', 'Aciklama': 'Guclu yukselisten sonra konsolidasyon. Devam edebilir.'})
+            elif pre_move < -5 and abs(recent_move) < 2:
+                formasyonlar.append({'Formasyon': '🏁 Asagi Bayrak', 'Guc': 'Orta', 'Sinyal': '🔴 SAT', 'Aciklama': 'Guclu dususten sonra konsolidasyon. Dusus devam edebilir.'})
+        # Cift Dip (Double Bottom)
+        if n >= 40:
+            first_half_min = min(prices[-40:-20])
+            second_half_min = min(prices[-20:])
+            diff_pct = abs(first_half_min - second_half_min) / first_half_min * 100
+            if diff_pct < 3 and price > (first_half_min + second_half_min) / 2 * 1.03:
+                formasyonlar.append({'Formasyon': '🟢 Cift Dip (Double Bottom)', 'Guc': 'Guclu', 'Sinyal': '🟢 AL', 'Aciklama': f'Iki benzer dip noktasi. Yukselis baslamis olabilir.'})
+        # Cift Tepe (Double Top)
+        if n >= 40:
+            first_half_max = max(prices[-40:-20])
+            second_half_max = max(prices[-20:])
+            diff_pct = abs(first_half_max - second_half_max) / first_half_max * 100
+            if diff_pct < 3 and price < (first_half_max + second_half_max) / 2 * 0.97:
+                formasyonlar.append({'Formasyon': '🔴 Cift Tepe (Double Top)', 'Guc': 'Guclu', 'Sinyal': '🔴 SAT', 'Aciklama': f'Iki benzer tepe noktasi. Dusus baslamis olabilir.'})
+        # Sonuclari goster
+        st.markdown(f"### {form_sym} — Tespit Edilen Formasyonlar")
+        if formasyonlar:
+            for f in formasyonlar:
+                if "AL" in f['Sinyal']: bg = "#e8f5e9"; border = "#2e7d32"
+                elif "SAT" in f['Sinyal']: bg = "#ffebee"; border = "#c62828"
+                else: bg = "#fff3e0"; border = "#f57c00"
+                st.markdown(f'<div style="background:{bg};border-left:4px solid {border};border-radius:8px;padding:16px;margin-bottom:10px"><div style="font-size:16px;font-weight:700">{f["Formasyon"]}</div><div style="margin-top:6px;display:flex;gap:10px"><span style="background:{border};color:white;padding:3px 10px;border-radius:12px;font-size:12px">{f["Sinyal"]}</span><span style="background:#eee;padding:3px 10px;border-radius:12px;font-size:12px">Guc: {f["Guc"]}</span></div><div style="color:#555;font-size:13px;margin-top:8px">{f["Aciklama"]}</div></div>', unsafe_allow_html=True)
+        else:
+            st.info(f"{form_sym} icin su an belirgin bir formasyon tespit edilemedi.")
+        # Grafik
+        st.markdown("---")
+        fig_form = go.Figure()
+        fig_form.add_trace(go.Candlestick(open=df_form['Open'].tolist()[-40:], high=highs[-40:], low=lows[-40:], close=prices[-40:], name='Fiyat'))
+        sma20 = close.rolling(20).mean().tolist()[-40:]
+        fig_form.add_trace(go.Scatter(y=sma20, name='SMA20', line=dict(color='#ff8f00', width=1.5, dash='dash')))
+        fig_form.update_layout(height=450, paper_bgcolor='white', plot_bgcolor='white', title=f"{form_sym} — Mum Grafik + SMA20", xaxis_rangeslider_visible=False)
+        fig_form.update_xaxes(showgrid=False)
+        fig_form.update_yaxes(showgrid=True, gridcolor='#eee')
+        st.plotly_chart(fig_form, use_container_width=True)
+    else:
+        st.error("Yeterli veri yok.")
+
+
+elif page == "🔴 Divergence":
+    st.title("🔴 Divergence (Sapma) Tespiti")
+    st.caption("Fiyat ile RSI arasindaki uyumsuzluk — guclu donus sinyali")
+    div_market = st.radio("Piyasa:", ["BIST", "Kripto"], horizontal=True, key="div_m")
+    if div_market == "BIST":
+        div_sym = st.selectbox("Hisse:", list(ALL_BIST.keys()), key="div_sym")
+        df_div = get_bist_data(div_sym)
+        cur = "₺"
+    else:
+        div_sym = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA, key="div_sym_c")
+        df_div = get_crypto_data(div_sym)
+        cur = "$"
+    if not df_div.empty and len(df_div) >= 30:
+        close = df_div['Close']
+        rsi_series = momentum.RSIIndicator(close, window=14).rsi()
+        prices_list = close.tolist()
+        rsi_list = rsi_series.tolist()
+        price_now = prices_list[-1]
+        price_10ago = prices_list[-10]
+        rsi_now = rsi_list[-1]
+        rsi_10ago = rsi_list[-10]
+        divergence_type = None
+        if price_now < price_10ago and rsi_now > rsi_10ago:
+            divergence_type = "bullish"
+        elif price_now > price_10ago and rsi_now < rsi_10ago:
+            divergence_type = "bearish"
+        if divergence_type == "bullish":
+            st.markdown(f'<div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px"><h2 style="margin:0;color:#2e7d32">🟢 POZITIF SAPMA (Bullish Divergence)</h2><p style="color:#333;margin-top:10px">Fiyat dususken RSI yukseliyor — <strong>YUKSELIS sinyali!</strong></p></div>', unsafe_allow_html=True)
+        elif divergence_type == "bearish":
+            st.markdown(f'<div style="background:#ffebee;border:2px solid #c62828;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px"><h2 style="margin:0;color:#c62828">🔴 NEGATIF SAPMA (Bearish Divergence)</h2><p style="color:#333;margin-top:10px">Fiyat yukselirken RSI dususyor — <strong>DUSUS sinyali!</strong></p></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div style="background:#f5f5f5;border:2px solid #9e9e9e;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px"><h2 style="margin:0;color:#666">⚪ SAPMA YOK</h2><p style="color:#333;margin-top:10px">Fiyat ve RSI uyumlu hareket ediyor.</p></div>', unsafe_allow_html=True)
+        st.markdown("---")
+        d1, d2, d3, d4 = st.columns(4)
+        d1.metric("Fiyat", f"{cur}{price_now:,.2f}")
+        d2.metric("RSI", f"{rsi_now:.1f}")
+        d3.metric("10 Gun Once Fiyat", f"{cur}{price_10ago:,.2f}")
+        d4.metric("10 Gun Once RSI", f"{rsi_10ago:.1f}")
+        st.markdown("---")
+        from plotly.subplots import make_subplots
+        fig_div = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.6, 0.4])
+        x_vals = list(range(len(prices_list[-40:])))
+        fig_div.add_trace(go.Scatter(x=x_vals, y=prices_list[-40:], name='Fiyat', line=dict(color='#1565c0', width=2.5)), row=1, col=1)
+        fig_div.add_trace(go.Scatter(x=x_vals, y=rsi_list[-40:], name='RSI', line=dict(color='#7b1fa2', width=2)), row=2, col=1)
+        fig_div.add_hline(y=70, line_dash="dash", line_color="#c62828", row=2, col=1)
+        fig_div.add_hline(y=30, line_dash="dash", line_color="#2e7d32", row=2, col=1)
+        if divergence_type:
+            fig_div.add_vrect(x0=len(x_vals)-10, x1=len(x_vals)-1, fillcolor="red" if divergence_type=="bearish" else "green", opacity=0.1, row=1, col=1)
+            fig_div.add_vrect(x0=len(x_vals)-10, x1=len(x_vals)-1, fillcolor="red" if divergence_type=="bearish" else "green", opacity=0.1, row=2, col=1)
+        fig_div.update_layout(height=500, paper_bgcolor='white', plot_bgcolor='white', title=f"{div_sym} — Fiyat vs RSI Sapma Analizi")
+        fig_div.update_xaxes(showgrid=False)
+        fig_div.update_yaxes(showgrid=True, gridcolor='#eee')
+        st.plotly_chart(fig_div, use_container_width=True)
+    else:
+        st.error("Yeterli veri yok.")
+
+
+elif page == "📊 10 Gun Heatmap":
+    st.title("📊 10 Gunluk Performans Heatmap")
+    st.caption("Her hissenin son 10 gunluk performansi (yesil/kirmizi)")
+    hm_scores = get_bist30_scores()
+    if not hm_scores.empty:
+        symbols_to_show = hm_scores['Sembol'].tolist()[:15]
+        heatmap_data = []
+        for sym in symbols_to_show:
+            try:
+                df_hm = get_bist_data(sym)
+                if not df_hm.empty and len(df_hm) >= 10:
+                    close = df_hm['Close']
+                    daily_returns = []
+                    for i in range(-10, 0):
+                        ret = ((float(close.iloc[i]) - float(close.iloc[i-1])) / float(close.iloc[i-1])) * 100
+                        daily_returns.append(round(ret, 1))
+                    heatmap_data.append({'Sembol': sym, 'returns': daily_returns})
+            except:
+                continue
+        if heatmap_data:
+            days = [f"G{i+1}" for i in range(10)]
+            header = "| Sembol | " + " | ".join(days) + " |"
+            st.markdown("---")
+            for item in heatmap_data:
+                cols = st.columns([1.5] + [1]*10)
+                with cols[0]:
+                    st.markdown(f"**{item['Sembol']}**")
+                for i, ret in enumerate(item['returns']):
+                    with cols[i+1]:
+                        if ret >= 2: bg = "#1b5e20"; color = "white"
+                        elif ret >= 0.5: bg = "#66bb6a"; color = "white"
+                        elif ret >= 0: bg = "#c8e6c9"; color = "#333"
+                        elif ret >= -0.5: bg = "#ffcdd2"; color = "#333"
+                        elif ret >= -2: bg = "#ef5350"; color = "white"
+                        else: bg = "#b71c1c"; color = "white"
+                        st.markdown(f'<div style="background:{bg};color:{color};text-align:center;padding:4px;border-radius:4px;font-size:11px;font-weight:600">{ret:+.1f}%</div>', unsafe_allow_html=True)
+    else:
+        st.error("Veri yuklenemedi.")
