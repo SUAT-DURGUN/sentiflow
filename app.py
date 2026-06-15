@@ -317,66 +317,107 @@ with st.sidebar:
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 if page == "🏠 Ana Sayfa":
-    st.markdown('<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><span style="font-size:40px">🌊</span><div><h1 style="margin:0;color:#1565c0">SentiFlow</h1><p style="margin:0;color:#666;font-size:14px">Piyasa Sentiment Analiz Platformu</p></div></div>', unsafe_allow_html=True)
-    bist_df = get_bist100_index()
-    bist30_df = get_bist30_index()
-    if not bist_df.empty:
-        bist_result = calc_sentiment(bist_df)
-        if bist_result:
-            gauge_val = int((bist_result['score'] + 100) / 2)
-            gauge_val = max(0, min(100, gauge_val))
-            if gauge_val >= 75: guc_text = "Guclu"
-            elif gauge_val >= 50: guc_text = "Normal"
-            elif gauge_val >= 25: guc_text = "Zayif"
-            else: guc_text = "Cok Zayif"
-            guc_color = '#c62828' if gauge_val < 25 else '#e65100' if gauge_val < 50 else '#2e7d32' if gauge_val < 75 else '#1565c0'
-            st.markdown(f'<div style="background:linear-gradient(135deg,#f8f9fa,#e3f2fd);border-radius:16px;padding:24px;margin-bottom:20px;border:1px solid #bbdefb"><div style="display:flex;align-items:center;gap:20px"><div style="text-align:center;min-width:100px"><div style="font-size:14px;color:#666">Sentiment Guc</div><div style="font-size:52px;font-weight:800;color:#1565c0">{gauge_val}</div><div style="background:{guc_color};color:white;border-radius:20px;padding:4px 12px;font-size:12px;display:inline-block">{guc_text}</div></div><div style="flex:1;color:#555;font-size:14px">Piyasalarin genel sentiment gucunu gosteren indikator.</div></div></div>', unsafe_allow_html=True)
-    st.subheader("📈 Piyasalar")
-    pc1, pc2, pc3, pc4 = st.columns(4)
-    with pc1:
-        if not bist_df.empty:
-            price = float(bist_df['Close'].iloc[-1])
-            prev = float(bist_df['Close'].iloc[-2])
-            chg = ((price - prev) / prev) * 100
-            st.metric("BIST100", f"{price:,.0f}", f"%{chg:.2f}")
-    with pc2:
-        if not bist30_df.empty:
-            price30 = float(bist30_df['Close'].iloc[-1])
-            prev30 = float(bist30_df['Close'].iloc[-2])
-            chg30 = ((price30 - prev30) / prev30) * 100
-            st.metric("BIST30", f"{price30:,.0f}", f"%{chg30:.2f}")
-    with pc3:
-        if not bist_df.empty and bist_result:
-            st.metric("Sentiment", f"{bist_result['sent_puan']:.2f}", bist_result['decision'])
-    with pc4:
-        if not bist_df.empty and bist_result:
-            st.metric("Momentum", f"{bist_result['momentum']:.2f}%", "")
+    # Ust Ticker Bandi
+    try:
+        xu100 = yf.Ticker("XU100.IS").history(period="2d")
+        xu030 = yf.Ticker("XU030.IS").history(period="2d")
+        usd_try = yf.Ticker("USDTRY=X").history(period="2d")
+        eur_try = yf.Ticker("EURTRY=X").history(period="2d")
+        gold = yf.Ticker("GC=F").history(period="2d")
+        xu100_price = float(xu100['Close'].iloc[-1]) if not xu100.empty else 0
+        xu100_chg = ((float(xu100['Close'].iloc[-1]) - float(xu100['Close'].iloc[-2])) / float(xu100['Close'].iloc[-2]) * 100) if len(xu100) >= 2 else 0
+        xu030_price = float(xu030['Close'].iloc[-1]) if not xu030.empty else 0
+        xu030_chg = ((float(xu030['Close'].iloc[-1]) - float(xu030['Close'].iloc[-2])) / float(xu030['Close'].iloc[-2]) * 100) if len(xu030) >= 2 else 0
+        usd_price = float(usd_try['Close'].iloc[-1]) if not usd_try.empty else 0
+        usd_chg = ((float(usd_try['Close'].iloc[-1]) - float(usd_try['Close'].iloc[-2])) / float(usd_try['Close'].iloc[-2]) * 100) if len(usd_try) >= 2 else 0
+        eur_price = float(eur_try['Close'].iloc[-1]) if not eur_try.empty else 0
+        eur_chg = ((float(eur_try['Close'].iloc[-1]) - float(eur_try['Close'].iloc[-2])) / float(eur_try['Close'].iloc[-2]) * 100) if len(eur_try) >= 2 else 0
+        gold_price = float(gold['Close'].iloc[-1]) if not gold.empty else 0
+        gold_chg = ((float(gold['Close'].iloc[-1]) - float(gold['Close'].iloc[-2])) / float(gold['Close'].iloc[-2]) * 100) if len(gold) >= 2 else 0
+    except:
+        xu100_price = xu100_chg = xu030_price = xu030_chg = usd_price = usd_chg = eur_price = eur_chg = gold_price = gold_chg = 0
+    def ticker_color(val):
+        return "#2e7d32" if val >= 0 else "#c62828"
+    st.markdown(f"""<div style="background:#1a237e;border-radius:10px;padding:12px 20px;margin-bottom:20px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px">
+        <div style="text-align:center"><span style="color:#90caf9;font-size:11px">BIST100</span><br><span style="color:white;font-weight:700">{xu100_price:,.0f}</span> <span style="color:{ticker_color(xu100_chg)};font-size:12px">({xu100_chg:+.1f}%)</span></div>
+        <div style="text-align:center"><span style="color:#90caf9;font-size:11px">BIST30</span><br><span style="color:white;font-weight:700">{xu030_price:,.0f}</span> <span style="color:{ticker_color(xu030_chg)};font-size:12px">({xu030_chg:+.1f}%)</span></div>
+        <div style="text-align:center"><span style="color:#90caf9;font-size:11px">USD/TRY</span><br><span style="color:white;font-weight:700">{usd_price:.4f}</span> <span style="color:{ticker_color(usd_chg)};font-size:12px">({usd_chg:+.1f}%)</span></div>
+        <div style="text-align:center"><span style="color:#90caf9;font-size:11px">EUR/TRY</span><br><span style="color:white;font-weight:700">{eur_price:.4f}</span> <span style="color:{ticker_color(eur_chg)};font-size:12px">({eur_chg:+.1f}%)</span></div>
+        <div style="text-align:center"><span style="color:#90caf9;font-size:11px">ALTIN</span><br><span style="color:white;font-weight:700">${gold_price:,.0f}</span> <span style="color:{ticker_color(gold_chg)};font-size:12px">({gold_chg:+.1f}%)</span></div>
+    </div>""", unsafe_allow_html=True)
+    # Piyasa Ozeti
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        greens = len(all_scores[all_scores['Sentiment'] > 10])
+        reds = len(all_scores[all_scores['Sentiment'] < -10])
+        yellows = len(all_scores) - greens - reds
+        avg_sent = all_scores['Sent.Puan'].mean()
+        if avg_sent > 6: piyasa_emoji = "🟢"; piyasa_text = "GUCLU"
+        elif avg_sent > 4: piyasa_emoji = "🟢"; piyasa_text = "POZITIF"
+        elif avg_sent > 3: piyasa_emoji = "🟡"; piyasa_text = "NOTR"
+        else: piyasa_emoji = "🔴"; piyasa_text = "NEGATIF"
+        st.markdown(f"""<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+                <div style="font-size:28px;font-weight:800;color:#2e7d32">{greens}</div>
+                <div style="color:#2e7d32;font-size:13px;font-weight:600">🟢 Yukselen</div>
+            </div>
+            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#ffebee,#ffcdd2);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+                <div style="font-size:28px;font-weight:800;color:#c62828">{reds}</div>
+                <div style="color:#c62828;font-size:13px;font-weight:600">🔴 Dusen</div>
+            </div>
+            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#fff8e1,#ffecb3);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+                <div style="font-size:28px;font-weight:800;color:#f57c00">{yellows}</div>
+                <div style="color:#f57c00;font-size:13px;font-weight:600">🟡 Notr</div>
+            </div>
+            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+                <div style="font-size:28px;font-weight:800;color:#1565c0">{piyasa_emoji} {piyasa_text}</div>
+                <div style="color:#1565c0;font-size:13px;font-weight:600">Piyasa Durumu</div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+        # Gunun Yildizlari
+        st.markdown("### ⭐ Gunun Yildizlari")
+        top5 = all_scores.sort_values('Gun%', ascending=False).head(5)
+        bot5 = all_scores.sort_values('Gun%', ascending=True).head(5)
+        col_top, col_bot = st.columns(2)
+        with col_top:
+            st.markdown("**📈 En Cok Yukselenler**")
+            for _, row in top5.iterrows():
+                st.markdown(f'<div style="background:#f1f8e9;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">{row["Sembol"]}</span><span style="color:#2e7d32;font-weight:700">{row["Gun%"]:+.2f}%</span></div>', unsafe_allow_html=True)
+        with col_bot:
+            st.markdown("**📉 En Cok Dusenler**")
+            for _, row in bot5.iterrows():
+                st.markdown(f'<div style="background:#fce4ec;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">{row["Sembol"]}</span><span style="color:#c62828;font-weight:700">{row["Gun%"]:+.2f}%</span></div>', unsafe_allow_html=True)
+        # Sentiment Grafigi
+        st.markdown("---")
+        st.markdown("### 📊 Piyasa Sentiment Dagilimi")
+        fig_pie = go.Figure(data=[go.Pie(labels=['Yukselen', 'Dusen', 'Notr'], values=[greens, reds, yellows], marker_colors=['#2e7d32', '#c62828', '#f57c00'], hole=0.4)])
+        fig_pie.update_layout(height=300, paper_bgcolor='white', showlegend=True)
+        st.plotly_chart(fig_pie, use_container_width=True)
+        # Dip Donusu Uyarisi
+        st.markdown("---")
+        st.markdown("### 🎯 Dip Donusu Sinyalleri")
+        dip_count = 0
+        dip_list = []
+        for symbol in list(ALL_BIST.keys())[:30]:
+            try:
+                df = get_bist_data(symbol)
+                if df is not None and not df.empty and len(df) >= 20:
+                    close = df['Close']
+                    rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+                    macd_hist = trend.MACD(close).macd_diff()
+                    macd_now = float(macd_hist.iloc[-1])
+                    macd_prev = float(macd_hist.iloc[-2])
+                    if rsi_val < 35 and macd_now > macd_prev:
+                        dip_count += 1
+                        dip_list.append(symbol)
+            except:
+                continue
+        if dip_list:
+            st.markdown(f'<div style="background:#e8f5e9;border:1px solid #2e7d32;border-radius:10px;padding:14px"><strong>🎯 {len(dip_list)} hisse dip donusu sinyali veriyor:</strong><br><span style="color:#2e7d32;font-weight:600">{", ".join(dip_list)}</span></div>', unsafe_allow_html=True)
+        else:
+            st.info("Su an belirgin dip donusu sinyali yok.")
     st.markdown("---")
-    st.subheader("📋 Ilk 10")
-    scores = get_bist30_scores()
-    if not scores.empty:
-        top_list = scores.sort_values('Sentiment', ascending=False).head(10)
-        cols = st.columns(5)
-        for i, (_, row) in enumerate(top_list.head(5).iterrows()):
-            with cols[i]:
-                color = "#2e7d32" if row['Gun%'] >= 0 else "#c62828"
-                st.markdown(f'<div style="background:white;border-radius:12px;padding:14px;border:1px solid #eee;text-align:center"><div style="font-weight:700">{row["Sembol"]}</div><div style="color:{color};font-size:20px;font-weight:700">{row["Fiyat"]}</div><div style="color:{color};font-size:12px">%{row["Gun%"]:.2f}</div><div style="font-size:11px;color:#666">{row["Karar"]}</div></div>', unsafe_allow_html=True)
-    st.markdown("---")
-    st.subheader("💰 Altin & Doviz")
-    gc1, gc2, gc3, gc4 = st.columns(4)
-    for i, (name, sym) in enumerate([('USD/TRY','USDTRY=X'),('EUR/TRY','EURTRY=X'),('Altin','GC=F'),('Gumus','SI=F')]):
-        with [gc1, gc2, gc3, gc4][i]:
-            df_c = get_stock_data(sym)
-            if not df_c.empty:
-                p = float(df_c['Close'].iloc[-1])
-                prev_p = float(df_c['Close'].iloc[-2]) if len(df_c) > 1 else p
-                chg = ((p - prev_p) / prev_p) * 100
-                st.metric(name, f"{p:,.2f}", f"{chg:+.2f}%")
-    st.markdown("---")
-    st.subheader("📰 Haberler")
-    news = get_kap_news()
-    for item in news[:4]:
-        st.markdown(f"**{item['symbol']}** — {item['title']}")
+    st.caption(f"Son guncelleme: {datetime.now().strftime('%d.%m.%Y %H:%M')} | sentiflow.streamlit.app")
 
 
 elif page == "📊 Hisse Analiz":
