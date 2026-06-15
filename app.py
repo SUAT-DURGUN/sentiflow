@@ -273,6 +273,7 @@ def get_all_bist_scores():
                 results.append({'Sembol': symbol, 'Fiyat': round(result['price'], 2), 'Gun%': result['daily_change'], 'Sentiment': result['score'], 'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1), 'Momentum%': round(result['momentum'], 2), 'Karar': result['decision'], 'Sinyal': result['signal'], 'Trend': result['trend']})
         except:
             continue
+            df = df.fillna(0)
     return pd.DataFrame(results)
 
 
@@ -376,8 +377,9 @@ if page == "🏠 Ana Sayfa":
         </div>""", unsafe_allow_html=True)
         # Gunun Yildizlari
         st.markdown("### ⭐ Gunun Yildizlari")
-        top5 = all_scores.sort_values('Gun%', ascending=False).head(5)
-        bot5 = all_scores.sort_values('Gun%', ascending=True).head(5)
+        top5 = all_scores.sort_values('Gun%', ascending=False).head(5).fillna(0)
+        bot5 = all_scores.sort_values('Gun%', ascending=True).head(5).fillna(0)
+
         col_top, col_bot = st.columns(2)
         with col_top:
             st.markdown("**📈 En Cok Yukselenler**")
@@ -530,8 +532,8 @@ elif page == "🧠 AI Tahmin":
                     avg_r = float(close.iloc[-5:].pct_change().dropna().mean())
                     vol_v = float(close.iloc[-5:].pct_change().dropna().std())
                     ts = 0
-                    if rsi_v < 30: ts += 3
-                    elif rsi_v > 70: ts -= 3
+                    if rsi_v < 40: ts += 3
+                    elif rsi_v > 60: ts -= 3
                     if macd_v > 0: ts += 2
                     else: ts -= 2
                     if avg_r > 0: ts += 1
