@@ -14,15 +14,6 @@ from datetime import datetime
 import requests
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
-if 'dark' not in st.session_state:
-    st.session_state.dark = False
-
-if st.session_state.get('dark', False):
-    st.markdown("""&lt;style>
-    .stApp {background-color: #1a1a2e; color: #eee;}
-    [data-testid="stSidebar"] {background-color: #16213e;}
-    h1, h2, h3 {color: #e0e0e0 !important;}
-    &lt;/style>""", unsafe_allow_html=True)
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
@@ -323,7 +314,6 @@ with st.sidebar:
     st.markdown("---")
     page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
     st.markdown("---")
-    dark_mode = st.checkbox("🌙 Dark Mode", key="dark")
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 if page == "🏠 Ana Sayfa":
