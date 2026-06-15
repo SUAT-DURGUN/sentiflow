@@ -14,7 +14,15 @@ from datetime import datetime
 import requests
 
 st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
+if 'dark' not in st.session_state:
+    st.session_state.dark = False
 
+if st.session_state.get('dark', False):
+    st.markdown("""&lt;style>
+    .stApp {background-color: #1a1a2e; color: #eee;}
+    [data-testid="stSidebar"] {background-color: #16213e;}
+    h1, h2, h3 {color: #e0e0e0 !important;}
+    &lt;/style>""", unsafe_allow_html=True)
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
@@ -313,8 +321,9 @@ with st.sidebar:
     st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
+    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
     st.markdown("---")
+    dark_mode = st.checkbox("🌙 Dark Mode", key="dark")
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
 if page == "🏠 Ana Sayfa":
@@ -899,3 +908,92 @@ elif page == "💼 Portfolyo":
             st.rerun()
     else:
         st.info("Henuz hisse eklenmedi. Yukardaki formdan ekleyin.")
+
+
+elif page == "🎯 Destek/Direnc":
+    st.title("🎯 Destek / Direnc Seviyeleri")
+    st.caption("Otomatik hesaplanan destek ve direnc noktalari")
+    dd_market = st.radio("Piyasa:", ["BIST", "Kripto"], horizontal=True, key="dd_m")
+    if dd_market == "BIST":
+        dd_sym = st.selectbox("Hisse:", list(ALL_BIST.keys()), key="dd_sym")
+        df_dd = get_bist_data(dd_sym)
+        cur = "₺"
+    else:
+        dd_sym = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA, key="dd_sym_c")
+        df_dd = get_crypto_data(dd_sym)
+        cur = "$"
+    if not df_dd.empty and len(df_dd) >= 20:
+        close = df_dd['Close']
+        high = df_dd['High']
+        low = df_dd['Low']
+        price = float(close.iloc[-1])
+        h20 = float(high.iloc[-20:].max())
+        l20 = float(low.iloc[-20:].min())
+        h50 = float(high.iloc[-50:].max()) if len(high) >= 50 else h20
+        l50 = float(low.iloc[-50:].min()) if len(low) >= 50 else l20
+        sma20 = float(close.rolling(20).mean().iloc[-1])
+        sma50 = float(close.rolling(50).mean().iloc[-1]) if len(close) >= 50 else sma20
+        pivot = (float(high.iloc[-1]) + float(low.iloc[-1]) + price) / 3
+        r1_pivot = 2 * pivot - float(low.iloc[-1])
+        s1_pivot = 2 * pivot - float(high.iloc[-1])
+        r2_pivot = pivot + (float(high.iloc[-1]) - float(low.iloc[-1]))
+        s2_pivot = pivot - (float(high.iloc[-1]) - float(low.iloc[-1]))
+        st.markdown(f'<div style="background:linear-gradient(135deg,#e3f2fd,#f8f9fa);border-radius:12px;padding:20px;text-align:center;margin-bottom:20px"><h2 style="margin:0;color:#1565c0">{dd_sym}</h2><h1 style="margin:5px 0;color:#333">{cur}{price:,.2f}</h1></div>', unsafe_allow_html=True)
+        st.markdown("---")
+        st.subheader("📊 Pivot Noktalari")
+        p1, p2, p3, p4, p5 = st.columns(5)
+        p1.metric("R2", f"{cur}{r2_pivot:,.2f}", "Direnc 2")
+        p2.metric("R1", f"{cur}{r1_pivot:,.2f}", "Direnc 1")
+        p3.metric("Pivot", f"{cur}{pivot:,.2f}", "Orta")
+        p4.metric("S1", f"{cur}{s1_pivot:,.2f}", "Destek 1")
+        p5.metric("S2", f"{cur}{s2_pivot:,.2f}", "Destek 2")
+        st.markdown("---")
+        st.subheader("📈 Seviyeler")
+        lvl_data = pd.DataFrame({'Seviye': ['20 Gun Direnc', '50 Gun Direnc', 'SMA20', 'SMA50', '20 Gun Destek', '50 Gun Destek'], 'Fiyat': [f"{cur}{h20:,.2f}", f"{cur}{h50:,.2f}", f"{cur}{sma20:,.2f}", f"{cur}{sma50:,.2f}", f"{cur}{l20:,.2f}", f"{cur}{l50:,.2f}"], 'Uzaklik': [f"%{((h20-price)/price)*100:+.1f}", f"%{((h50-price)/price)*100:+.1f}", f"%{((sma20-price)/price)*100:+.1f}", f"%{((sma50-price)/price)*100:+.1f}", f"%{((l20-price)/price)*100:+.1f}", f"%{((l50-price)/price)*100:+.1f}"]})
+        st.dataframe(lvl_data, use_container_width=True, hide_index=True)
+        st.markdown("---")
+        fig_dd = go.Figure()
+        fig_dd.add_trace(go.Scatter(y=close.tolist()[-60:], name='Fiyat', line=dict(color='#1565c0', width=2.5)))
+        fig_dd.add_hline(y=r1_pivot, line_dash="dash", line_color="#c62828", annotation_text="R1")
+        fig_dd.add_hline(y=s1_pivot, line_dash="dash", line_color="#2e7d32", annotation_text="S1")
+        fig_dd.add_hline(y=pivot, line_dash="dot", line_color="#f57c00", annotation_text="Pivot")
+        fig_dd.add_hline(y=sma20, line_dash="dot", line_color="#7b1fa2", annotation_text="SMA20")
+        fig_dd.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white', title="Fiyat + Destek/Direnc")
+        fig_dd.update_xaxes(showgrid=False)
+        fig_dd.update_yaxes(showgrid=True, gridcolor='#eee')
+        st.plotly_chart(fig_dd, use_container_width=True)
+    else:
+        st.error("Yeterli veri yok.")
+
+
+elif page == "🕐 Piyasa Saati":
+    st.title("🕐 Piyasa Saati")
+    st.caption("Global borsalarin acilis/kapanis durumu")
+    now = datetime.now()
+    hour = now.hour
+    minute = now.minute
+    weekday = now.weekday()
+    markets = [
+        {"name": "🇹🇷 BIST (Istanbul)", "open": 10, "close": 18, "tz": 3},
+        {"name": "🇺🇸 NYSE (New York)", "open": 9, "close": 16, "tz": -4},
+        {"name": "🇺🇸 NASDAQ", "open": 9, "close": 16, "tz": -4},
+        {"name": "🇬🇧 LSE (Londra)", "open": 8, "close": 16, "tz": 1},
+        {"name": "🇩🇪 XETRA (Frankfurt)", "open": 9, "close": 17, "tz": 2},
+        {"name": "🇯🇵 TSE (Tokyo)", "open": 9, "close": 15, "tz": 9},
+        {"name": "🇭🇰 HKEX (Hong Kong)", "open": 9, "close": 16, "tz": 8},
+        {"name": "🪙 Kripto", "open": 0, "close": 24, "tz": 0},
+    ]
+    for m in markets:
+        local_hour = (hour + m['tz'] - 3) % 24
+        if m['name'] == "🪙 Kripto":
+            is_open = True
+        elif weekday >= 5:
+            is_open = False
+        else:
+            is_open = m['open'] <= local_hour < m['close']
+        status = "🟢 ACIK" if is_open else "🔴 KAPALI"
+        status_bg = "#e8f5e9" if is_open else "#ffebee"
+        hours_text = f"{m['open']:02d}:00 - {m['close']:02d}:00" if m['close'] != 24 else "7/24"
+        st.markdown(f'<div style="background:{status_bg};border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><strong>{m["name"]}</strong><br><span style="color:#666;font-size:12px">{hours_text} (Yerel)</span></div><div style="font-size:16px;font-weight:700">{status}</div></div>', unsafe_allow_html=True)
+    st.markdown("---")
+    st.caption(f"Sunucu Saati: {now.strftime('%d.%m.%Y %H:%M')} (UTC+3)")
