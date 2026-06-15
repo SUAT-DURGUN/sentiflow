@@ -312,7 +312,7 @@ with st.sidebar:
     st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
+    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🟢 Aktif Degisimler", "📊 Grid Grafik", "🎯 Dip Donusu", "📈 Backtest", "📋 Haftalik Rapor", "📐 Fibonacci/Bollinger", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
     st.markdown("---")
     st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
@@ -987,3 +987,241 @@ elif page == "🕐 Piyasa Saati":
         st.markdown(f'<div style="background:{status_bg};border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><strong>{m["name"]}</strong><br><span style="color:#666;font-size:12px">{hours_text} (Yerel)</span></div><div style="font-size:16px;font-weight:700">{status}</div></div>', unsafe_allow_html=True)
     st.markdown("---")
     st.caption(f"Sunucu Saati: {now.strftime('%d.%m.%Y %H:%M')} (UTC+3)")
+
+
+elif page == "🟢 Aktif Degisimler":
+    st.title("🟢 Aktif Degisimler")
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        greens = all_scores[all_scores['Sentiment'] > 10]
+        reds = all_scores[all_scores['Sentiment'] < -10]
+        yellows = all_scores[(all_scores['Sentiment'] >= -10) & (all_scores['Sentiment'] <= 10)]
+        total = len(all_scores)
+        g_count = len(greens)
+        r_count = len(reds)
+        y_count = len(yellows)
+        st.markdown(f"""<div style="display:flex;gap:10px;margin-bottom:20px">
+            <div style="background:#2e7d32;color:white;padding:8px 16px;border-radius:20px;font-weight:700">{g_count}/{total} 🟢</div>
+            <div style="background:#c62828;color:white;padding:8px 16px;border-radius:20px;font-weight:700">{r_count}/{total} 🔴</div>
+            <div style="background:#f9a825;color:white;padding:8px 16px;border-radius:20px;font-weight:700">{y_count}/{total} 🟡</div>
+        </div>""", unsafe_allow_html=True)
+        filter_type = st.radio("Filtre:", ["Tum", "Yesiller", "Kirmizilar", "Sarilar"], horizontal=True)
+        if filter_type == "Yesiller": show_df = greens
+        elif filter_type == "Kirmizilar": show_df = reds
+        elif filter_type == "Sarilar": show_df = yellows
+        else: show_df = all_scores
+        if not show_df.empty:
+            show_df_sorted = show_df.sort_values('Sentiment', ascending=False).reset_index(drop=True)
+            cols_per_row = 3
+            for i in range(0, len(show_df_sorted), cols_per_row):
+                cols = st.columns(cols_per_row)
+                for j in range(cols_per_row):
+                    if i + j < len(show_df_sorted):
+                        row = show_df_sorted.iloc[i + j]
+                        with cols[j]:
+                            if row['Sentiment'] > 10: border_color = "#2e7d32"
+                            elif row['Sentiment'] < -10: border_color = "#c62828"
+                            else: border_color = "#f9a825"
+                            chg_color = "#2e7d32" if row['Gun%'] >= 0 else "#c62828"
+                            st.markdown(f'<div style="border:2px solid {border_color};border-radius:10px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:15px">{i+j+1}. {row["Sembol"]}</span><span style="color:{chg_color};font-weight:700">%{row["Gun%"]:.2f}</span></div><div style="color:#666;font-size:13px;margin-top:4px">₺{row["Fiyat"]} | Sent: {row["Sent.Puan"]:.1f} | {row["Karar"]}</div></div>', unsafe_allow_html=True)
+
+
+elif page == "📊 Grid Grafik":
+    st.title("📊 Grid Grafik — Coklu Hisse")
+    st.caption("6 hisseyi ayni anda izle (Fiyat + STP + HSTP)")
+    default_symbols = ['THYAO', 'ASELS', 'GARAN', 'AKBNK', 'EREGL', 'TUPRS']
+    selected = st.multiselect("Hisse Sec (max 6):", list(ALL_BIST.keys()), default=default_symbols, max_selections=6)
+    if selected:
+        cols_per_row = 3 if len(selected) > 3 else len(selected)
+        rows_needed = (len(selected) + cols_per_row - 1) // cols_per_row
+        for row_i in range(rows_needed):
+            cols = st.columns(cols_per_row)
+            for col_i in range(cols_per_row):
+                idx = row_i * cols_per_row + col_i
+                if idx < len(selected):
+                    sym = selected[idx]
+                    with cols[col_i]:
+                        df = get_bist_data(sym)
+                        if not df.empty and len(df) >= 20:
+                            close = df['Close']
+                            price = float(close.iloc[-1])
+                            prev = float(close.iloc[-2])
+                            chg = ((price - prev) / prev) * 100
+                            chg_color = "#2e7d32" if chg >= 0 else "#c62828"
+                            fig = go.Figure()
+                            fig.add_trace(go.Scatter(y=close.tolist()[-60:], name='Fiyat', line=dict(color='#2e7d32', width=2)))
+                            stp_vals = close.rolling(20).mean().tolist()[-60:]
+                            fig.add_trace(go.Scatter(y=stp_vals, name='STP', line=dict(color='#ff8f00', width=1.5, dash='dash')))
+                            if len(close) >= 50:
+                                hstp_vals = close.rolling(50).mean().tolist()[-60:]
+                                fig.add_trace(go.Scatter(y=hstp_vals, name='HSTP', line=dict(color='#c62828', width=1.5, dash='dot')))
+                            fig.update_layout(height=200, margin=dict(l=5,r=5,t=5,b=5), showlegend=False, paper_bgcolor='white', plot_bgcolor='white')
+                            fig.update_xaxes(showticklabels=False, showgrid=False)
+                            fig.update_yaxes(showticklabels=False, showgrid=False)
+                            st.markdown(f'<div style="text-align:center;font-weight:700;font-size:14px">{sym} <span style="color:{chg_color}">₺{price:.2f} ({chg:+.1f}%)</span></div>', unsafe_allow_html=True)
+                            st.plotly_chart(fig, use_container_width=True, key=f"grid_{sym}")
+
+
+elif page == "🎯 Dip Donusu":
+    st.title("🎯 Dip Donusu Yapabilecek Hisseler")
+    st.caption("RSI asiri satim + MACD yukari donuyor + Fiyat destek yakininda")
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        dip_candidates = []
+        for symbol in ALL_BIST.keys():
+            try:
+                df = get_bist_data(symbol)
+                if df is not None and not df.empty and len(df) >= 20:
+                    close = df['Close']
+                    rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+                    macd_hist = trend.MACD(close).macd_diff()
+                    macd_now = float(macd_hist.iloc[-1])
+                    macd_prev = float(macd_hist.iloc[-2])
+                    price = float(close.iloc[-1])
+                    low20 = float(close.iloc[-20:].min())
+                    dist_to_low = ((price - low20) / low20) * 100
+                    if rsi_val < 40 and macd_now > macd_prev and dist_to_low < 5:
+                        dip_candidates.append({'Sembol': symbol, 'Fiyat': price, 'RSI': round(rsi_val, 1), 'MACD Yon': '📈 Yukari', 'Dip Uzaklik': f"%{dist_to_low:.1f}", 'Guc': round((40 - rsi_val) + (macd_now - macd_prev) * 100, 1)})
+            except:
+                continue
+        if dip_candidates:
+            dip_df = pd.DataFrame(dip_candidates).sort_values('Guc', ascending=False)
+            st.markdown(f"### 🎯 {len(dip_df)} Adet Dip Donusu Adayi Bulundu!")
+            for i, (_, row) in enumerate(dip_df.iterrows()):
+                st.markdown(f'<div style="background:#e8f5e9;border-left:4px solid #2e7d32;border-radius:8px;padding:14px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong style="font-size:16px">{i+1}. {row["Sembol"]}</strong><br><span style="color:#666">₺{row["Fiyat"]:.2f} | RSI: {row["RSI"]} | {row["MACD Yon"]} | Dip: {row["Dip Uzaklik"]}</span></div><div style="background:#2e7d32;color:white;padding:6px 14px;border-radius:20px;font-weight:700">Guc: {row["Guc"]}</div></div></div>', unsafe_allow_html=True)
+        else:
+            st.info("Su an dip donusu adayi bulunamadi.")
+
+
+elif page == "📈 Backtest":
+    st.title("📈 Backtest — Sinyal Performansi")
+    st.caption("Gecmis sinyallerin basari orani")
+    bt_sym = st.selectbox("Hisse:", list(ALL_BIST.keys()), key="bt_sym")
+    if st.button("📈 Backtest Yap", type="primary"):
+        with st.spinner("Gecmis analiz ediliyor..."):
+            df = yf.Ticker(ALL_BIST[bt_sym]).history(period="6mo", interval="1d")
+            if not df.empty and len(df) >= 50:
+                close = df['Close']
+                rsi_series = momentum.RSIIndicator(close, window=14).rsi()
+                macd_series = trend.MACD(close).macd_diff()
+                signals = []
+                for i in range(20, len(close) - 5):
+                    rsi_v = float(rsi_series.iloc[i])
+                    macd_v = float(macd_series.iloc[i])
+                    price_entry = float(close.iloc[i])
+                    price_5d = float(close.iloc[min(i+5, len(close)-1)])
+                    ret_5d = ((price_5d - price_entry) / price_entry) * 100
+                    if rsi_v < 30 and macd_v > 0:
+                        signals.append({'Tarih': df.index[i].strftime('%d.%m.%Y'), 'Tip': '🟢 AL', 'Giris': round(price_entry, 2), '5 Gun Sonra': round(price_5d, 2), 'Getiri%': round(ret_5d, 2)})
+                    elif rsi_v > 70 and macd_v < 0:
+                        signals.append({'Tarih': df.index[i].strftime('%d.%m.%Y'), 'Tip': '🔴 SAT', 'Giris': round(price_entry, 2), '5 Gun Sonra': round(price_5d, 2), 'Getiri%': round(-ret_5d, 2)})
+                if signals:
+                    sig_df = pd.DataFrame(signals)
+                    total = len(sig_df)
+                    win = len(sig_df[sig_df['Getiri%'] > 0])
+                    lose = total - win
+                    avg_ret = sig_df['Getiri%'].mean()
+                    win_rate = (win / total) * 100
+                    wr_color = "#2e7d32" if win_rate >= 50 else "#c62828"
+                    st.markdown(f'<div style="background:{wr_color};color:white;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px"><h2 style="margin:0;color:white">Basari Orani: %{win_rate:.0f}</h2><p style="color:rgba(255,255,255,0.9)">Toplam {total} sinyal | {win} basarili | {lose} basarisiz | Ort. Getiri: %{avg_ret:.2f}</p></div>', unsafe_allow_html=True)
+                    st.dataframe(sig_df, use_container_width=True, hide_index=True)
+                else:
+                    st.info(f"{bt_sym} icin son 6 ayda guclu sinyal bulunamadi.")
+            else:
+                st.error("Yeterli veri yok.")
+
+
+elif page == "📋 Haftalik Rapor":
+    st.title("📋 Haftalik Sentiment Degerlendirmesi")
+    st.caption("Bu haftanin ozeti ve AI yorumu")
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        top7 = all_scores.sort_values('Sentiment', ascending=False).head(7)
+        bot7 = all_scores.sort_values('Sentiment', ascending=True).head(7)
+        greens = all_scores[all_scores['Sentiment'] > 10]
+        reds = all_scores[all_scores['Sentiment'] < -10]
+        yellows = all_scores[(all_scores['Sentiment'] >= -10) & (all_scores['Sentiment'] <= 10)]
+        col_l, col_r = st.columns(2)
+        with col_l:
+            st.markdown("### 🏆 Haftalik Yedili (En Guclu)")
+            for i, (_, row) in enumerate(top7.iterrows()):
+                st.markdown(f'<div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between"><span><strong>{i+1}. {row["Sembol"]}</strong></span><span style="color:#2e7d32;font-weight:700">%{row["Gun%"]:.2f} | Sent: {row["Sent.Puan"]:.1f}</span></div>', unsafe_allow_html=True)
+        with col_r:
+            st.markdown("### ⚠️ En Zayiflar")
+            for i, (_, row) in enumerate(bot7.iterrows()):
+                st.markdown(f'<div style="background:#ffebee;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between"><span><strong>{i+1}. {row["Sembol"]}</strong></span><span style="color:#c62828;font-weight:700">%{row["Gun%"]:.2f} | Sent: {row["Sent.Puan"]:.1f}</span></div>', unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("### 🤖 AI Haftalik Yorum")
+        best = top7.iloc[0]
+        worst = bot7.iloc[0]
+        avg_sent = all_scores['Sent.Puan'].mean()
+        if avg_sent > 6: piyasa_durum = "guclu yukselis trendinde"
+        elif avg_sent > 4: piyasa_durum = "pozitif bir seyir izliyor"
+        elif avg_sent > 3: piyasa_durum = "notr bir gorunum sergiliyor"
+        else: piyasa_durum = "baski altinda"
+        yorum = f"**Haftalik Degerlendirme:**\n\nBIST piyasasi bu hafta {piyasa_durum}. "
+        yorum += f"Toplam {len(all_scores)} hissenin **{len(greens)} tanesi yesil**, {len(reds)} tanesi kirmizi, {len(yellows)} tanesi sari bolgede.\n\n"
+        yorum += f"**Haftanin Yildizi:** {best['Sembol']} (%{best['Gun%']:.2f} getiri, Sentiment: {best['Sent.Puan']:.1f})\n\n"
+        yorum += f"**En Zayif:** {worst['Sembol']} (%{worst['Gun%']:.2f}, Sentiment: {worst['Sent.Puan']:.1f})"
+        st.markdown(yorum)
+
+
+elif page == "📐 Fibonacci/Bollinger":
+    st.title("📐 Fibonacci & Bollinger Bands")
+    fib_market = st.radio("Piyasa:", ["BIST", "Kripto"], horizontal=True, key="fib_m")
+    if fib_market == "BIST":
+        fib_sym = st.selectbox("Hisse:", list(ALL_BIST.keys()), key="fib_sym")
+        df_fib = get_bist_data(fib_sym)
+        cur = "₺"
+    else:
+        fib_sym = st.selectbox("Kripto:", CRYPTO_BINANCE + CRYPTO_EXTRA, key="fib_sym_c")
+        df_fib = get_crypto_data(fib_sym)
+        cur = "$"
+    if not df_fib.empty and len(df_fib) >= 20:
+        close = df_fib['Close']
+        high_max = float(close.max())
+        low_min = float(close.min())
+        price = float(close.iloc[-1])
+        diff = high_max - low_min
+        fib_levels = {'%0 (Dip)': low_min, '%23.6': low_min + diff * 0.236, '%38.2': low_min + diff * 0.382, '%50.0': low_min + diff * 0.5, '%61.8': low_min + diff * 0.618, '%78.6': low_min + diff * 0.786, '%100 (Tepe)': high_max}
+        bb_mid = close.rolling(20).mean()
+        bb_std = close.rolling(20).std()
+        bb_upper = bb_mid + 2 * bb_std
+        bb_lower = bb_mid - 2 * bb_std
+        st.subheader(f"📐 Fibonacci Seviyeleri — {fib_sym}")
+        fib_data = []
+        for name, level in fib_levels.items():
+            dist = ((level - price) / price) * 100
+            fib_data.append({'Seviye': name, 'Fiyat': f"{cur}{level:,.2f}", 'Uzaklik': f"%{dist:+.1f}"})
+        st.dataframe(pd.DataFrame(fib_data), use_container_width=True, hide_index=True)
+        st.markdown("---")
+        st.subheader("📊 Bollinger Bands")
+        bb_u = float(bb_upper.iloc[-1])
+        bb_m = float(bb_mid.iloc[-1])
+        bb_l = float(bb_lower.iloc[-1])
+        bb_width = ((bb_u - bb_l) / bb_m) * 100
+        b1, b2, b3, b4 = st.columns(4)
+        b1.metric("Ust Band", f"{cur}{bb_u:,.2f}")
+        b2.metric("Orta", f"{cur}{bb_m:,.2f}")
+        b3.metric("Alt Band", f"{cur}{bb_l:,.2f}")
+        b4.metric("Bant Genisligi", f"%{bb_width:.1f}")
+        if price > bb_u: bb_signal = "🔴 Asiri Alim — Fiyat ust bandin ustunde!"
+        elif price < bb_l: bb_signal = "🟢 Asiri Satim — Fiyat alt bandin altinda!"
+        else: bb_signal = "⚪ Normal — Fiyat bantlar arasinda."
+        st.info(bb_signal)
+        st.markdown("---")
+        fig_fb = go.Figure()
+        x_vals = list(range(len(close.tolist()[-60:])))
+        fig_fb.add_trace(go.Scatter(x=x_vals, y=close.tolist()[-60:], name='Fiyat', line=dict(color='#1565c0', width=2.5)))
+        fig_fb.add_trace(go.Scatter(x=x_vals, y=bb_upper.tolist()[-60:], name='Ust BB', line=dict(color='#c62828', width=1, dash='dash')))
+        fig_fb.add_trace(go.Scatter(x=x_vals, y=bb_mid.tolist()[-60:], name='Orta BB', line=dict(color='#f57c00', width=1, dash='dot')))
+        fig_fb.add_trace(go.Scatter(x=x_vals, y=bb_lower.tolist()[-60:], name='Alt BB', line=dict(color='#2e7d32', width=1, dash='dash')))
+        for name, level in fib_levels.items():
+            if '%23' in name or '%50' in name or '%61' in name:
+                fig_fb.add_hline(y=level, line_dash="dot", line_color="#9e9e9e", annotation_text=name)
+        fig_fb.update_layout(height=450, paper_bgcolor='white', plot_bgcolor='white', title=f"{fib_sym} — Fibonacci + Bollinger")
+        fig_fb.update_xaxes(showgrid=False)
+        fig_fb.update_yaxes(showgrid=True, gridcolor='#eee')
+        st.plotly_chart(fig_fb, use_container_width=True)
+    else:
+        st.error("Yeterli veri yok.")

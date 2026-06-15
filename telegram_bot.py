@@ -170,6 +170,25 @@ def check_alerts():
         msg += "\n🌐 sentiflow.streamlit.app"
         send_telegram(msg)
     return len(alerts)
+def check_alerts():
+    """Buyuk degisimler icin otomatik uyari."""
+    alerts = []
+    for symbol in WATCHLIST_BIST:
+        r = calc_bist_signal(symbol)
+        if r and (r['change'] > 5 or r['change'] < -5):
+            alerts.append(r)
+    for symbol in WATCHLIST_CRYPTO:
+        r = calc_crypto_signal(symbol)
+        if r and (r['change'] > 7 or r['change'] < -7):
+            alerts.append(r)
+    if alerts:
+        msg = "🚨 <b>UYARI! Buyuk Degisim!</b>\n\n"
+        for a in alerts:
+            emoji = "📈" if a['change'] > 0 else "📉"
+            msg += f"{emoji} <b>{a['name']}</b>: ({a['change']:+.1f}%) {a['decision']}\n"
+        msg += "\n🌐 sentiflow.streamlit.app"
+        send_telegram(msg)
+        print(f"🚨 {len(alerts)} uyari gonderildi!")
 
 def handle_message(text):
     text = text.lower().strip()
@@ -194,6 +213,7 @@ if __name__ == "__main__":
     send_telegram("🌊 <b>SentiFlow Bot aktif!</b>\n\nKomutlar:\n/sinyal — Tum sinyaller\n/bist — BIST analiz\n/kripto — Kripto analiz\n/help — Yardim")
     
     offset = None
+    alert_check = 0
     while True:
         try:
             updates = get_updates(offset)
@@ -204,9 +224,13 @@ if __name__ == "__main__":
                 if text:
                     print(f"Komut: {text}")
                     handle_message(text)
-                    time.sleep(2)
-            # Her 30 dakikada uyari kontrol
-            if int(time.time()) % 1800 < 5:
+            alert_check += 1
+            if alert_check >= 900:
                 check_alerts()
+                alert_check = 0
+            time.sleep(2)
+        except KeyboardInterrupt:
+            print("\nBot durduruldu.")
+            break
         except:
             time.sleep(5)
