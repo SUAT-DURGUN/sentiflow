@@ -772,3 +772,130 @@ elif page == "📋 BIST30 Son 10":
         fig = go.Figure(go.Bar(x=bottom10['Sembol'], y=bottom10['Sentiment'], marker_color=['#1565c0' if v>=0 else '#c62828' for v in bottom10['Sentiment']], text=bottom10['Karar'], textposition='outside'))
         fig.update_layout(height=400, paper_bgcolor='white', plot_bgcolor='white')
         st.plotly_chart(fig, use_container_width=True)
+
+
+elif page == "🔥 Heatmap":
+    st.title("🔥 Heatmap — BIST Isı Haritasi")
+    st.caption("Yesil = yukselis, Kirmizi = dusus")
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        sorted_s = all_scores.sort_values('Gun%', ascending=False)
+        max_val = max(abs(sorted_s['Gun%'].max()), abs(sorted_s['Gun%'].min()), 1)
+        cols_per_row = 6
+        rows_data = [sorted_s.iloc[i:i+cols_per_row] for i in range(0, len(sorted_s), cols_per_row)]
+        for row_data in rows_data:
+            cols = st.columns(cols_per_row)
+            for i, (_, row) in enumerate(row_data.iterrows()):
+                if i < cols_per_row:
+                    with cols[i]:
+                        pct = row['Gun%']
+                        if pct >= 2: bg = "#1b5e20"
+                        elif pct >= 0.5: bg = "#388e3c"
+                        elif pct >= 0: bg = "#66bb6a"
+                        elif pct >= -0.5: bg = "#ef5350"
+                        elif pct >= -2: bg = "#c62828"
+                        else: bg = "#7f0000"
+                        st.markdown(f'<div style="background:{bg};color:white;border-radius:8px;padding:10px;text-align:center;margin-bottom:6px;min-height:70px"><div style="font-weight:700;font-size:13px">{row["Sembol"]}</div><div style="font-size:16px;font-weight:800">{pct:+.1f}%</div><div style="font-size:11px">₺{row["Fiyat"]}</div></div>', unsafe_allow_html=True)
+
+
+elif page == "⚔️ Karsilastir":
+    st.title("⚔️ Hisse Karsilastirma")
+    st.caption("2 hisseyi yan yana karsilastir")
+    col1, col2 = st.columns(2)
+    with col1:
+        sym1 = st.selectbox("1. Hisse:", list(ALL_BIST.keys()), index=0)
+    with col2:
+        sym2 = st.selectbox("2. Hisse:", list(ALL_BIST.keys()), index=1)
+    if st.button("⚔️ Karsilastir", type="primary"):
+        df1 = get_bist_data(sym1)
+        df2 = get_bist_data(sym2)
+        r1 = calc_sentiment(df1)
+        r2 = calc_sentiment(df2)
+        if r1 and r2:
+            st.markdown("---")
+            c1, c2 = st.columns(2)
+            with c1:
+                dec_color = "#2e7d32" if "AL" in r1['decision'] else "#c62828" if "SAT" in r1['decision'] else "#f57c00"
+                st.markdown(f'<div style="background:{dec_color};color:white;border-radius:12px;padding:20px;text-align:center"><h2 style="margin:0;color:white">{sym1}</h2><p style="margin:5px 0;font-size:24px;color:white">₺{r1["price"]:,.2f}</p><p style="color:rgba(255,255,255,0.9)">{r1["decision"]}</p></div>', unsafe_allow_html=True)
+            with c2:
+                dec_color = "#2e7d32" if "AL" in r2['decision'] else "#c62828" if "SAT" in r2['decision'] else "#f57c00"
+                st.markdown(f'<div style="background:{dec_color};color:white;border-radius:12px;padding:20px;text-align:center"><h2 style="margin:0;color:white">{sym2}</h2><p style="margin:5px 0;font-size:24px;color:white">₺{r2["price"]:,.2f}</p><p style="color:rgba(255,255,255,0.9)">{r2["decision"]}</p></div>', unsafe_allow_html=True)
+            st.markdown("---")
+            compare_data = pd.DataFrame({'Gosterge': ['Fiyat', 'Gun%', 'Sentiment', 'RSI', 'Stoch', 'Momentum%', 'MACD', 'EMA21', 'Karar'], sym1: [f"₺{r1['price']:,.2f}", f"%{r1['daily_change']:.2f}", f"{r1['sent_puan']:.2f}", f"{r1['rsi']:.1f}", f"{r1['stoch']:.1f}", f"%{r1['momentum']:.2f}", f"{r1['macd']:.4f}", f"₺{r1['ema21']:.2f}", r1['decision']], sym2: [f"₺{r2['price']:,.2f}", f"%{r2['daily_change']:.2f}", f"{r2['sent_puan']:.2f}", f"{r2['rsi']:.1f}", f"{r2['stoch']:.1f}", f"%{r2['momentum']:.2f}", f"{r2['macd']:.4f}", f"₺{r2['ema21']:.2f}", r2['decision']]})
+            st.dataframe(compare_data, use_container_width=True, hide_index=True)
+            st.markdown("---")
+            fig = go.Figure()
+            prices1 = [p / r1['prices'][0] * 100 for p in r1['prices']]
+            prices2 = [p / r2['prices'][0] * 100 for p in r2['prices']]
+            fig.add_trace(go.Scatter(y=prices1, name=sym1, line=dict(color='#1565c0', width=2.5)))
+            fig.add_trace(go.Scatter(y=prices2, name=sym2, line=dict(color='#c62828', width=2.5)))
+            fig.update_layout(height=350, title="Performans Karsilastirma (Normalize)", paper_bgcolor='white', plot_bgcolor='white')
+            fig.update_xaxes(showgrid=False)
+            fig.update_yaxes(showgrid=True, gridcolor='#eee')
+            st.plotly_chart(fig, use_container_width=True)
+
+
+elif page == "🏆 Gunun En Iyileri":
+    st.title("🏆 Gunun En Iyileri / En Kotuleri")
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        gtab1, gtab2 = st.tabs(["📈 En Cok Yukselenler", "📉 En Cok Dusenler"])
+        with gtab1:
+            top5 = all_scores.sort_values('Gun%', ascending=False).head(5).reset_index(drop=True)
+            for i, (_, row) in enumerate(top5.iterrows()):
+                medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i]
+                st.markdown(f'<div style="background:#e8f5e9;border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:20px">{medal}</span> <strong style="font-size:16px">{row["Sembol"]}</strong></div><div style="text-align:right"><span style="color:#2e7d32;font-size:18px;font-weight:700">+%{row["Gun%"]:.2f}</span><br><span style="color:#666;font-size:13px">₺{row["Fiyat"]} | {row["Karar"]}</span></div></div>', unsafe_allow_html=True)
+        with gtab2:
+            bot5 = all_scores.sort_values('Gun%', ascending=True).head(5).reset_index(drop=True)
+            for i, (_, row) in enumerate(bot5.iterrows()):
+                medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i]
+                st.markdown(f'<div style="background:#ffebee;border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:20px">{medal}</span> <strong style="font-size:16px">{row["Sembol"]}</strong></div><div style="text-align:right"><span style="color:#c62828;font-size:18px;font-weight:700">{row["Gun%"]:.2f}%</span><br><span style="color:#666;font-size:13px">₺{row["Fiyat"]} | {row["Karar"]}</span></div></div>', unsafe_allow_html=True)
+
+
+elif page == "💼 Portfolyo":
+    st.title("💼 Portfolyo Takibi")
+    st.caption("Hisselerinizi ekleyin, kar/zarar takip edin")
+    if 'portfolio' not in st.session_state:
+        st.session_state.portfolio = []
+    with st.expander("➕ Hisse Ekle"):
+        p_col1, p_col2, p_col3 = st.columns(3)
+        with p_col1:
+            p_sym = st.selectbox("Sembol:", list(ALL_BIST.keys()), key="port_sym")
+        with p_col2:
+            p_lot = st.number_input("Lot:", min_value=1, value=100, key="port_lot")
+        with p_col3:
+            p_cost = st.number_input("Alis Fiyati (₺):", min_value=0.01, value=10.0, step=0.01, key="port_cost")
+        if st.button("➕ Ekle", key="port_add"):
+            st.session_state.portfolio.append({'symbol': p_sym, 'lot': p_lot, 'cost': p_cost})
+            st.success(f"✅ {p_sym} eklendi!")
+            st.rerun()
+    if st.session_state.portfolio:
+        st.markdown("---")
+        toplam_maliyet = 0
+        toplam_deger = 0
+        port_data = []
+        for item in st.session_state.portfolio:
+            try:
+                df = get_bist_data(item['symbol'])
+                if not df.empty:
+                    current = float(df['Close'].iloc[-1])
+                    maliyet = item['lot'] * item['cost']
+                    deger = item['lot'] * current
+                    kar = deger - maliyet
+                    kar_pct = ((current - item['cost']) / item['cost']) * 100
+                    toplam_maliyet += maliyet
+                    toplam_deger += deger
+                    port_data.append({'Sembol': item['symbol'], 'Lot': item['lot'], 'Alis': f"₺{item['cost']:.2f}", 'Guncel': f"₺{current:.2f}", 'Kar/Zarar': f"₺{kar:,.0f}", 'Kar%': f"%{kar_pct:.1f}"})
+            except:
+                continue
+        if port_data:
+            toplam_kar = toplam_deger - toplam_maliyet
+            toplam_pct = ((toplam_deger - toplam_maliyet) / toplam_maliyet) * 100 if toplam_maliyet > 0 else 0
+            t_color = "#2e7d32" if toplam_kar >= 0 else "#c62828"
+            st.markdown(f'<div style="background:{t_color};color:white;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px"><h3 style="margin:0;color:white">Toplam Kar/Zarar</h3><h1 style="margin:5px 0;color:white">₺{toplam_kar:,.0f} (%{toplam_pct:.1f})</h1><p style="color:rgba(255,255,255,0.8)">Maliyet: ₺{toplam_maliyet:,.0f} | Deger: ₺{toplam_deger:,.0f}</p></div>', unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame(port_data), use_container_width=True, hide_index=True)
+        if st.button("🗑️ Portfolyoyu Temizle"):
+            st.session_state.portfolio = []
+            st.rerun()
+    else:
+        st.info("Henuz hisse eklenmedi. Yukardaki formdan ekleyin.")
