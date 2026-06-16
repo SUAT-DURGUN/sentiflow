@@ -12,11 +12,13 @@ from ta import momentum, trend
 import ccxt
 from datetime import datetime
 import requests
-import pytz
-TR_TZ = pytz.timezone('Europe/Istanbul')
+
 
 def get_turkey_time():
-    return datetime.now(TR_TZ)
+    from datetime import timezone, timedelta
+    utc_now = datetime.now(timezone.utc)
+    tr_time = utc_now + timedelta(hours=3)
+    return tr_time
 
 st.set_page_config(
     page_title="SentiFlow — Piyasa Sentiment Platformu",
