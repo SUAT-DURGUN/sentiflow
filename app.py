@@ -326,7 +326,7 @@ with st.sidebar:
     </div>""", unsafe_allow_html=True)
 
 if page == "🏠 Ana Sayfa":
-        # Canli Veri Badge
+    # Canli Badge
     st.markdown(f'<div style="text-align:right;margin-bottom:10px"><span style="background:#2e7d32;color:white;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600">🟢 CANLI | {datetime.now().strftime("%H:%M")}</span></div>', unsafe_allow_html=True)
     # Ust Ticker Bandi
     try:
@@ -335,6 +335,7 @@ if page == "🏠 Ana Sayfa":
         usd_try = yf.Ticker("USDTRY=X").history(period="2d")
         eur_try = yf.Ticker("EURTRY=X").history(period="2d")
         gold = yf.Ticker("GC=F").history(period="2d")
+        btc = yf.Ticker("BTC-USD").history(period="2d")
         xu100_price = float(xu100['Close'].iloc[-1]) if not xu100.empty else 0
         xu100_chg = ((float(xu100['Close'].iloc[-1]) - float(xu100['Close'].iloc[-2])) / float(xu100['Close'].iloc[-2]) * 100) if len(xu100) >= 2 else 0
         xu030_price = float(xu030['Close'].iloc[-1]) if not xu030.empty else 0
@@ -345,8 +346,10 @@ if page == "🏠 Ana Sayfa":
         eur_chg = ((float(eur_try['Close'].iloc[-1]) - float(eur_try['Close'].iloc[-2])) / float(eur_try['Close'].iloc[-2]) * 100) if len(eur_try) >= 2 else 0
         gold_price = float(gold['Close'].iloc[-1]) if not gold.empty else 0
         gold_chg = ((float(gold['Close'].iloc[-1]) - float(gold['Close'].iloc[-2])) / float(gold['Close'].iloc[-2]) * 100) if len(gold) >= 2 else 0
+        btc_price = float(btc['Close'].iloc[-1]) if not btc.empty else 0
+        btc_chg = ((float(btc['Close'].iloc[-1]) - float(btc['Close'].iloc[-2])) / float(btc['Close'].iloc[-2]) * 100) if len(btc) >= 2 else 0
     except:
-        xu100_price = xu100_chg = xu030_price = xu030_chg = usd_price = usd_chg = eur_price = eur_chg = gold_price = gold_chg = 0
+        xu100_price = xu100_chg = xu030_price = xu030_chg = usd_price = usd_chg = eur_price = eur_chg = gold_price = gold_chg = btc_price = btc_chg = 0
     def ticker_color(val):
         return "#2e7d32" if val >= 0 else "#c62828"
     st.markdown(f"""<div style="background:#1a237e;border-radius:10px;padding:12px 20px;margin-bottom:20px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px">
@@ -355,10 +358,12 @@ if page == "🏠 Ana Sayfa":
         <div style="text-align:center"><span style="color:#90caf9;font-size:11px">USD/TRY</span><br><span style="color:white;font-weight:700">{usd_price:.4f}</span> <span style="color:{ticker_color(usd_chg)};font-size:12px">({usd_chg:+.1f}%)</span></div>
         <div style="text-align:center"><span style="color:#90caf9;font-size:11px">EUR/TRY</span><br><span style="color:white;font-weight:700">{eur_price:.4f}</span> <span style="color:{ticker_color(eur_chg)};font-size:12px">({eur_chg:+.1f}%)</span></div>
         <div style="text-align:center"><span style="color:#90caf9;font-size:11px">ALTIN</span><br><span style="color:white;font-weight:700">${gold_price:,.0f}</span> <span style="color:{ticker_color(gold_chg)};font-size:12px">({gold_chg:+.1f}%)</span></div>
+        <div style="text-align:center"><span style="color:#90caf9;font-size:11px">BTC</span><br><span style="color:white;font-weight:700">${btc_price:,.0f}</span> <span style="color:{ticker_color(btc_chg)};font-size:12px">({btc_chg:+.1f}%)</span></div>
     </div>""", unsafe_allow_html=True)
-    # Piyasa Ozeti
+    # Piyasa Ozeti Kartlari
     all_scores = get_all_bist_scores()
     if not all_scores.empty:
+        all_scores = all_scores.fillna(0)
         greens = len(all_scores[all_scores['Sentiment'] > 10])
         reds = len(all_scores[all_scores['Sentiment'] < -10])
         yellows = len(all_scores) - greens - reds
@@ -368,28 +373,71 @@ if page == "🏠 Ana Sayfa":
         elif avg_sent > 3: piyasa_emoji = "🟡"; piyasa_text = "NOTR"
         else: piyasa_emoji = "🔴"; piyasa_text = "NEGATIF"
         st.markdown(f"""<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+            <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
                 <div style="font-size:28px;font-weight:800;color:#2e7d32">{greens}</div>
                 <div style="color:#2e7d32;font-size:13px;font-weight:600">🟢 Yukselen</div>
             </div>
-            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#ffebee,#ffcdd2);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+            <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#ffebee,#ffcdd2);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
                 <div style="font-size:28px;font-weight:800;color:#c62828">{reds}</div>
                 <div style="color:#c62828;font-size:13px;font-weight:600">🔴 Dusen</div>
             </div>
-            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#fff8e1,#ffecb3);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+            <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#fff8e1,#ffecb3);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
                 <div style="font-size:28px;font-weight:800;color:#f57c00">{yellows}</div>
                 <div style="color:#f57c00;font-size:13px;font-weight:600">🟡 Notr</div>
             </div>
-            <div style="flex:1;min-width:150px;background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+            <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
                 <div style="font-size:28px;font-weight:800;color:#1565c0">{piyasa_emoji} {piyasa_text}</div>
                 <div style="color:#1565c0;font-size:13px;font-weight:600">Piyasa Durumu</div>
             </div>
         </div>""", unsafe_allow_html=True)
+        # BIST30 / BIST70 / BIST100 Sekmeleri
+        st.markdown("---")
+        bist_tab = st.radio("Endeks:", ["BIST30", "BIST70", "BIST100 (Tumu)"], horizontal=True, key="bist_tab_home")
+        if bist_tab == "BIST30":
+            show_symbols = list(BIST30.keys())
+        elif bist_tab == "BIST70":
+            show_symbols = list(BIST100_EXTRA.keys())
+        else:
+            show_symbols = list(ALL_BIST.keys())
+        # Hisse Kartlari
+        cols_per_row = 4
+        shown_scores = all_scores[all_scores['Sembol'].isin(show_symbols)].sort_values('Gun%', ascending=False).reset_index(drop=True)
+        for i in range(0, min(len(shown_scores), 20), cols_per_row):
+            cols = st.columns(cols_per_row)
+            for j in range(cols_per_row):
+                if i + j < min(len(shown_scores), 20):
+                    row = shown_scores.iloc[i + j]
+                    with cols[j]:
+                        chg = row['Gun%']
+                        if chg > 0: border = "#2e7d32"; arrow = "📈"
+                        elif chg < 0: border = "#c62828"; arrow = "📉"
+                        else: border = "#f57c00"; arrow = "➡️"
+                        chg_color = "#2e7d32" if chg >= 0 else "#c62828"
+                        st.markdown(f'<div style="border:2px solid {border};border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer"><div style="font-weight:700;font-size:14px">{arrow} {row["Sembol"]}</div><div style="color:{chg_color};font-weight:700;font-size:16px;margin-top:4px">₺{row["Fiyat"]:.2f}</div><div style="color:{chg_color};font-size:13px">{chg:+.2f}%</div><div style="color:#666;font-size:11px;margin-top:2px">Sent: {row["Sent.Puan"]:.1f} | {row["Karar"]}</div></div>', unsafe_allow_html=True)
+        # Hisse Detay (tiklaninca grafik)
+        st.markdown("---")
+        st.markdown("### 📈 Hisse Detay Grafigi")
+        detail_sym = st.selectbox("Hisse sec:", show_symbols, key="home_detail")
+        if detail_sym:
+            df_detail = get_bist_data(detail_sym)
+            if not df_detail.empty and len(df_detail) >= 20:
+                close = df_detail['Close']
+                sma20 = close.rolling(20).mean()
+                fig_detail = go.Figure()
+                fig_detail.add_trace(go.Scatter(y=close.tolist()[-60:], name='Fiyat', line=dict(color='#1565c0', width=2.5)))
+                fig_detail.add_trace(go.Scatter(y=sma20.tolist()[-60:], name='SMA20', line=dict(color='#ff8f00', width=1.5, dash='dash')))
+                if len(close) >= 50:
+                    sma50 = close.rolling(50).mean()
+                    fig_detail.add_trace(go.Scatter(y=sma50.tolist()[-60:], name='SMA50', line=dict(color='#c62828', width=1.5, dash='dot')))
+                fig_detail.update_layout(height=350, paper_bgcolor='white', plot_bgcolor='white', title=f"{detail_sym} — Son 60 Gun")
+                fig_detail.update_xaxes(showgrid=False)
+                fig_detail.update_yaxes(showgrid=True, gridcolor='#eee')
+                st.plotly_chart(fig_detail, use_container_width=True)
         # Gunun Yildizlari
+        st.markdown("---")
         st.markdown("### ⭐ Gunun Yildizlari")
         top5 = all_scores.sort_values('Gun%', ascending=False).head(5).fillna(0)
         bot5 = all_scores.sort_values('Gun%', ascending=True).head(5).fillna(0)
-
         col_top, col_bot = st.columns(2)
         with col_top:
             st.markdown("**📈 En Cok Yukselenler**")
@@ -399,18 +447,11 @@ if page == "🏠 Ana Sayfa":
             st.markdown("**📉 En Cok Dusenler**")
             for _, row in bot5.iterrows():
                 st.markdown(f'<div style="background:#fce4ec;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600">{row["Sembol"]}</span><span style="color:#c62828;font-weight:700">{row["Gun%"]:+.2f}%</span></div>', unsafe_allow_html=True)
-        # Sentiment Grafigi
-        st.markdown("---")
-        st.markdown("### 📊 Piyasa Sentiment Dagilimi")
-        fig_pie = go.Figure(data=[go.Pie(labels=['Yukselen', 'Dusen', 'Notr'], values=[greens, reds, yellows], marker_colors=['#2e7d32', '#c62828', '#f57c00'], hole=0.4)])
-        fig_pie.update_layout(height=300, paper_bgcolor='white', showlegend=True)
-        st.plotly_chart(fig_pie, use_container_width=True)
-        # Dip Donusu Uyarisi
+        # Dip Donusu - TUM hisselere bak
         st.markdown("---")
         st.markdown("### 🎯 Dip Donusu Sinyalleri")
-        dip_count = 0
         dip_list = []
-        for symbol in list(ALL_BIST.keys())[:30]:
+        for symbol in ALL_BIST.keys():
             try:
                 df = get_bist_data(symbol)
                 if df is not None and not df.empty and len(df) >= 20:
@@ -420,16 +461,21 @@ if page == "🏠 Ana Sayfa":
                     macd_now = float(macd_hist.iloc[-1])
                     macd_prev = float(macd_hist.iloc[-2])
                     if rsi_val < 35 and macd_now > macd_prev:
-                        dip_count += 1
-                        dip_list.append(symbol)
+                        dip_list.append(f"{symbol} (RSI: {rsi_val:.0f})")
             except:
                 continue
         if dip_list:
             st.markdown(f'<div style="background:#e8f5e9;border:1px solid #2e7d32;border-radius:10px;padding:14px"><strong>🎯 {len(dip_list)} hisse dip donusu sinyali veriyor:</strong><br><span style="color:#2e7d32;font-weight:600">{", ".join(dip_list)}</span></div>', unsafe_allow_html=True)
         else:
             st.info("Su an belirgin dip donusu sinyali yok.")
+        # Sentiment Pasta
+        st.markdown("---")
+        st.markdown("### 📊 Piyasa Sentiment Dagilimi")
+        fig_pie = go.Figure(data=[go.Pie(labels=['Yukselen', 'Dusen', 'Notr'], values=[greens, reds, yellows], marker_colors=['#2e7d32', '#c62828', '#f57c00'], hole=0.4)])
+        fig_pie.update_layout(height=300, paper_bgcolor='white', showlegend=True)
+        st.plotly_chart(fig_pie, use_container_width=True)
     st.markdown("---")
-    st.caption(f"Son guncelleme: {datetime.now().strftime('%d.%m.%Y %H:%M')} | sentiflow.streamlit.app")
+    st.caption(f"Son guncelleme: {datetime.now().strftime('%d.%m.%Y %H:%M')} | sentiflow.streamlit.app | Yatirim tavsiyesi degildir.")
 
 
 elif page == "📊 Hisse Analiz":
