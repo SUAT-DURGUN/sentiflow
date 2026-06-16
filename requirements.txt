@@ -1,7 +1,9 @@
 streamlit
 yfinance
 pandas
-numpy
 plotly
 ta
 ccxt
+requests
+scikit-learn
+numpy

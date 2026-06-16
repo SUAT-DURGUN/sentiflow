@@ -13,9 +13,13 @@ import ccxt
 from datetime import datetime
 import requests
 
-st.set_page_config(page_title="SentiFlow", page_icon="🌊", layout="wide")
+st.set_page_config(
+    page_title="SentiFlow — Piyasa Sentiment Platformu",
+    page_icon="🌊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Auto-refresh her 5 dakikada
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
@@ -322,6 +326,8 @@ with st.sidebar:
     </div>""", unsafe_allow_html=True)
 
 if page == "🏠 Ana Sayfa":
+        # Canli Veri Badge
+    st.markdown(f'<div style="text-align:right;margin-bottom:10px"><span style="background:#2e7d32;color:white;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600">🟢 CANLI | {datetime.now().strftime("%H:%M")}</span></div>', unsafe_allow_html=True)
     # Ust Ticker Bandi
     try:
         xu100 = yf.Ticker("XU100.IS").history(period="2d")
@@ -1481,3 +1487,11 @@ elif page == "📊 10 Gun Heatmap":
                         st.markdown(f'<div style="background:{bg};color:{color};text-align:center;padding:4px;border-radius:4px;font-size:11px;font-weight:600">{ret:+.1f}%</div>', unsafe_allow_html=True)
     else:
         st.error("Veri yuklenemedi.")
+
+# Footer
+st.markdown("---")
+st.markdown("""<div style="text-align:center;padding:20px;color:#999">
+    <div style="font-size:14px;font-weight:600">🌊 SentiFlow v4.3</div>
+    <div style="font-size:11px;margin-top:4px">Piyasa Sentiment Analiz Platformu | Yatirim tavsiyesi degildir.</div>
+    <div style="font-size:11px;margin-top:2px">© 2025 SentiFlow. Tum haklar saklidir.</div>
+</div>""", unsafe_allow_html=True)
