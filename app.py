@@ -80,12 +80,33 @@ COMMODITIES = {
 }
 
 
-@st.cache_data(ttl=600)
-def get_stock_data(symbol):
+@st.cache_data(ttl=300)
+def get_bist_data(symbol):
+    """BIST hisse verisi cek — CANLI ve DOGRU."""
     try:
-        return yf.Ticker(symbol).history(period="3mo", interval="1d")
+        ticker_code = ALL_BIST.get(symbol, f"{symbol}.IS")
+        df = yf.Ticker(ticker_code).history(period="3mo", interval="1d")
+        if df.empty:
+            return pd.DataFrame()
+        # NaN satirlari temizle
+        df = df.dropna(subset=['Close'])
+        df = df[df['Close'] > 0]
+        return df
     except:
         return pd.DataFrame()
+
+
+def get_accurate_change(df):
+    """Dogru yuzde degisim hesapla."""
+    if df is None or df.empty or len(df) < 2:
+        return 0, 0, 0
+    close = df['Close']
+    price = float(close.iloc[-1])
+    prev = float(close.iloc[-2])
+    if prev == 0:
+        return price, 0, prev
+    change = ((price - prev) / prev) * 100
+    return price, change, prev
 
 
 @st.cache_data(ttl=600)
@@ -268,19 +289,62 @@ def predict_trend(symbol):
         return None
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300)
 def get_all_bist_scores():
+    """Tum BIST skorlarini hesapla — DOGRU verilerle."""
     results = []
-    for symbol in ALL_BIST.keys():
+    for symbol, ticker in ALL_BIST.items():
         try:
             df = get_bist_data(symbol)
-            result = calc_sentiment(df)
-            if result:
-                results.append({'Sembol': symbol, 'Fiyat': round(result['price'], 2), 'Gun%': result['daily_change'], 'Sentiment': result['score'], 'Sent.Puan': result['sent_puan'], 'RSI': round(result['rsi'], 1), 'Momentum%': round(result['momentum'], 2), 'Karar': result['decision'], 'Sinyal': result['signal'], 'Trend': result['trend']})
+            if df is None or df.empty or len(df) < 14:
+                continue
+            close = df['Close']
+            price, change, prev = get_accurate_change(df)
+            if price == 0:
+                continue
+            # RSI hesapla
+            rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+            # MACD hesapla
+            macd_obj = trend.MACD(close)
+            macd_val = float(macd_obj.macd_diff().iloc[-1])
+            # SMA
+            sma20 = float(close.rolling(20).mean().iloc[-1]) if len(close) >= 20 else price
+            # Sentiment Puan (1-10)
+            sent = 5.0
+            if rsi_val < 30: sent += 2
+            elif rsi_val < 40: sent += 1
+            elif rsi_val > 70: sent -= 2
+            elif rsi_val > 60: sent -= 1
+            if macd_val > 0: sent += 1.5
+            else: sent -= 1.5
+            if price > sma20: sent += 1
+            else: sent -= 1
+            if change > 2: sent += 0.5
+            elif change < -2: sent -= 0.5
+            sent = max(1, min(10, sent))
+            # Karar
+            if sent >= 7: karar = "🟢 GUCLU AL"
+            elif sent >= 5.5: karar = "🟢 AL"
+            elif sent >= 4: karar = "🟡 TUT"
+            elif sent >= 3: karar = "🔴 SAT"
+            else: karar = "🔴 GUCLU SAT"
+            # Sentiment skoru (eski uyumluluk)
+            sentiment_score = (sent - 5) * 4
+            results.append({
+                'Sembol': symbol,
+                'Fiyat': round(price, 2),
+                'Gun%': round(change, 2),
+                'RSI': round(rsi_val, 1),
+                'MACD': round(macd_val, 3),
+                'Sent.Puan': round(sent, 1),
+                'Sentiment': round(sentiment_score, 1),
+                'Karar': karar
+            })
         except:
             continue
-            df = df.fillna(0)
-    return pd.DataFrame(results)
+    if results:
+        return pd.DataFrame(results)
+    return pd.DataFrame()
 
 
 @st.cache_data(ttl=600)
@@ -318,7 +382,7 @@ with st.sidebar:
     st.markdown("### 🌊 SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.selectbox("Sayfa", ["🏠 Ana Sayfa","📊 Hisse Analiz","🪙 Kripto Analiz","🧠 AI Tahmin","🟢 Aktif Degisimler","📊 Grid Grafik","🎯 Dip Donusu","📈 Backtest","📋 Haftalik Rapor","📐 Fibonacci/Bollinger","📐 Formasyonlar","🔴 Divergence","📊 10 Gun Heatmap","🔔 Sinyal Merkezi","⭐ Favorilerim","🔥 Heatmap","⚔️ Karsilastir","🏆 Gunun En Iyileri","💼 Portfolyo","🎯 Destek/Direnc","🕐 Piyasa Saati","🇺🇸 S&P / NASDAQ","🇪🇺 Avrupa","🥇 Altin & Doviz","📰 KAP Haberleri","📋 Hisse Tablosu","🪙 Kripto Top 10","🔍 Akilli Filtre","📈 Gunluk Sentiment","🔄 Osilator","📋 BIST30 Ilk 10","📋 BIST30 Son 10"])
+    page = st.selectbox("Sayfa", ["🏠 Ana Sayfa","📊 Hisse Analiz","🪙 Kripto Analiz","🧠 AI Tahmin","🟢 Aktif Degisimler","📊 Grid Grafik","🎯 Dip Donusu","📈 Backtest","📋 Haftalik Rapor","📐 Fibonacci/Bollinger","📐 Formasyonlar","📰 AI Gunluk Yorum","🔴 Divergence","📊 10 Gun Heatmap","🔔 Sinyal Merkezi","⭐ Favorilerim","🔥 Heatmap","⚔️ Karsilastir","🏆 Gunun En Iyileri","💼 Portfolyo","🎯 Destek/Direnc","🕐 Piyasa Saati","🇺🇸 S&P / NASDAQ","🇪🇺 Avrupa","🥇 Altin & Doviz","📰 KAP Haberleri","📋 Hisse Tablosu","🪙 Kripto Top 10","🔍 Akilli Filtre","📈 Gunluk Sentiment","🔄 Osilator","📋 BIST30 Ilk 10","📋 BIST30 Son 10"])
     st.markdown("---")
     st.markdown("""<div style="background:linear-gradient(135deg,#ff8f00,#ff6f00);border-radius:10px;padding:12px;text-align:center">
         <div style="font-size:14px;font-weight:700;color:white">⭐ PRO'ya Gec</div>
@@ -414,25 +478,82 @@ if page == "🏠 Ana Sayfa":
                         else: border = "#f57c00"; arrow = "➡️"
                         chg_color = "#2e7d32" if chg >= 0 else "#c62828"
                         st.markdown(f'<div style="border:2px solid {border};border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer"><div style="font-weight:700;font-size:14px">{arrow} {row["Sembol"]}</div><div style="color:{chg_color};font-weight:700;font-size:16px;margin-top:4px">₺{row["Fiyat"]:.2f}</div><div style="color:{chg_color};font-size:13px">{chg:+.2f}%</div><div style="color:#666;font-size:11px;margin-top:2px">Sent: {row["Sent.Puan"]:.1f} | {row["Karar"]}</div></div>', unsafe_allow_html=True)
-        # Hisse Detay (tiklaninca grafik)
+                # Hisse Detay — Tiklaninca Profesyonel Grafik
         st.markdown("---")
-        st.markdown("### 📈 Hisse Detay Grafigi")
+        st.markdown("### 📈 Hisse Detay")
         detail_sym = st.selectbox("Hisse sec:", show_symbols, key="home_detail")
         if detail_sym:
             df_detail = get_bist_data(detail_sym)
             if not df_detail.empty and len(df_detail) >= 20:
                 close = df_detail['Close']
-                sma20 = close.rolling(20).mean()
-                fig_detail = go.Figure()
-                fig_detail.add_trace(go.Scatter(y=close.tolist()[-60:], name='Fiyat', line=dict(color='#1565c0', width=2.5)))
-                fig_detail.add_trace(go.Scatter(y=sma20.tolist()[-60:], name='SMA20', line=dict(color='#ff8f00', width=1.5, dash='dash')))
+                high = df_detail['High']
+                low = df_detail['Low']
+                open_p = df_detail['Open']
+                volume = df_detail['Volume']
+                price_now, chg_now, prev_now = get_accurate_change(df_detail)
+                chg_color = "#2e7d32" if chg_now >= 0 else "#c62828"
+                # Ust bilgi kartlari
+                sma20_val = float(close.rolling(20).mean().iloc[-1])
+                rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
+                macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
+                sent_val = 5.0
+                if rsi_val < 30: sent_val += 2
+                elif rsi_val < 40: sent_val += 1
+                elif rsi_val > 70: sent_val -= 2
+                elif rsi_val > 60: sent_val -= 1
+                if macd_val > 0: sent_val += 1.5
+                else: sent_val -= 1.5
+                if price_now > sma20_val: sent_val += 1
+                else: sent_val -= 1
+                sent_val = max(1, min(10, sent_val))
+                st.markdown(f"""<div style="display:flex;gap:12px;margin-bottom:15px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:100px;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center">
+                        <div style="color:#666;font-size:11px">Fiyat</div>
+                        <div style="font-size:20px;font-weight:700;color:{chg_color}">₺{price_now:.2f}</div>
+                        <div style="color:{chg_color};font-size:12px">{chg_now:+.2f}%</div>
+                    </div>
+                    <div style="flex:1;min-width:100px;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center">
+                        <div style="color:#666;font-size:11px">Sentiment</div>
+                        <div style="font-size:20px;font-weight:700;color:#1565c0">{sent_val:.1f}</div>
+                        <div style="color:#666;font-size:12px">/10</div>
+                    </div>
+                    <div style="flex:1;min-width:100px;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center">
+                        <div style="color:#666;font-size:11px">RSI</div>
+                        <div style="font-size:20px;font-weight:700;color:{'#c62828' if rsi_val > 70 else '#2e7d32' if rsi_val < 30 else '#333'}">{rsi_val:.0f}</div>
+                        <div style="color:#666;font-size:12px">{'Asiri Alim' if rsi_val > 70 else 'Asiri Satim' if rsi_val < 30 else 'Normal'}</div>
+                    </div>
+                    <div style="flex:1;min-width:100px;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center">
+                        <div style="color:#666;font-size:11px">STP (SMA20)</div>
+                        <div style="font-size:20px;font-weight:700">₺{sma20_val:.2f}</div>
+                        <div style="color:{'#2e7d32' if price_now > sma20_val else '#c62828'};font-size:12px">{'Ustunde ↑' if price_now > sma20_val else 'Altinda ↓'}</div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+                # Profesyonel Grafik (Mum + SMA + Hacim)
+                from plotly.subplots import make_subplots
+                fig_pro = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.75, 0.25])
+                # Mum grafik
+                fig_pro.add_trace(go.Candlestick(
+                    x=df_detail.index[-60:],
+                    open=open_p.tolist()[-60:],
+                    high=high.tolist()[-60:],
+                    low=low.tolist()[-60:],
+                    close=close.tolist()[-60:],
+                    name='Fiyat', increasing_line_color='#2e7d32', decreasing_line_color='#c62828'
+                ), row=1, col=1)
+                # SMA20
+                sma20_series = close.rolling(20).mean()
+                fig_pro.add_trace(go.Scatter(x=df_detail.index[-60:], y=sma20_series.tolist()[-60:], name='STP (SMA20)', line=dict(color='#ff8f00', width=2, dash='dash')), row=1, col=1)
+                # SMA50
                 if len(close) >= 50:
-                    sma50 = close.rolling(50).mean()
-                    fig_detail.add_trace(go.Scatter(y=sma50.tolist()[-60:], name='SMA50', line=dict(color='#c62828', width=1.5, dash='dot')))
-                fig_detail.update_layout(height=350, paper_bgcolor='white', plot_bgcolor='white', title=f"{detail_sym} — Son 60 Gun")
-                fig_detail.update_xaxes(showgrid=False)
-                fig_detail.update_yaxes(showgrid=True, gridcolor='#eee')
-                st.plotly_chart(fig_detail, use_container_width=True)
+                    sma50_series = close.rolling(50).mean()
+                    fig_pro.add_trace(go.Scatter(x=df_detail.index[-60:], y=sma50_series.tolist()[-60:], name='HSTP (SMA50)', line=dict(color='#7b1fa2', width=1.5, dash='dot')), row=1, col=1)
+                # Hacim
+                colors_vol = ['#2e7d32' if close.tolist()[-60:][i] >= open_p.tolist()[-60:][i] else '#c62828' for i in range(min(60, len(close)))]
+                fig_pro.add_trace(go.Bar(x=df_detail.index[-60:], y=volume.tolist()[-60:], name='Hacim', marker_color=colors_vol, opacity=0.5), row=2, col=1)
+                fig_pro.update_layout(height=500, paper_bgcolor='white', plot_bgcolor='white', title=f"{detail_sym} — Profesyonel Grafik", xaxis_rangeslider_visible=False, showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=1.02))
+                fig_pro.update_xaxes(showgrid=False)
+                fig_pro.update_yaxes(showgrid=True, gridcolor='#f0f0f0')
+                st.plotly_chart(fig_pro, use_container_width=True)
         # Gunun Yildizlari
         st.markdown("---")
         st.markdown("### ⭐ Gunun Yildizlari")
@@ -617,6 +738,74 @@ elif page == "🧠 AI Tahmin":
             else:
                 st.error("Tahmin yapilamadi.")
 
+
+elif page == "📰 AI Gunluk Yorum":
+    st.title("📰 Gunluk Sentiment Yorumu")
+    st.caption("AI tarafindan olusturulan gunluk piyasa degerlendirmesi")
+    all_scores = get_all_bist_scores()
+    if not all_scores.empty:
+        greens = len(all_scores[all_scores['Sentiment'] > 10])
+        reds = len(all_scores[all_scores['Sentiment'] < -10])
+        yellows = len(all_scores) - greens - reds
+        avg_sent = all_scores['Sent.Puan'].mean()
+        avg_change = all_scores['Gun%'].mean()
+        best = all_scores.sort_values('Gun%', ascending=False).iloc[0]
+        worst = all_scores.sort_values('Gun%', ascending=True).iloc[0]
+        # Sentiment seviyesi
+        if avg_sent > 7: seviye = "9.50"; durum = "GUCLU POZITIF"
+        elif avg_sent > 6: seviye = "7.80"; durum = "POZITIF"
+        elif avg_sent > 5: seviye = "6.20"; durum = "HAFIF POZITIF"
+        elif avg_sent > 4: seviye = "5.00"; durum = "NOTR"
+        elif avg_sent > 3: seviye = "3.80"; durum = "HAFIF NEGATIF"
+        else: seviye = "2.50"; durum = "NEGATIF"
+        # Ust Kartlar
+        st.markdown(f"""<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+            <div style="flex:1;min-width:120px;background:#f8f9fa;border-radius:10px;padding:14px;text-align:center;border-left:4px solid #1565c0">
+                <div style="color:#666;font-size:11px">Sentiment</div>
+                <div style="font-size:24px;font-weight:700;color:#1565c0">{avg_sent:.2f}</div>
+                <div style="color:#666;font-size:11px">{durum}</div>
+            </div>
+            <div style="flex:1;min-width:120px;background:#f8f9fa;border-radius:10px;padding:14px;text-align:center;border-left:4px solid #ff8f00">
+                <div style="color:#666;font-size:11px">Ort. Degisim</div>
+                <div style="font-size:24px;font-weight:700;color:{'#2e7d32' if avg_change >= 0 else '#c62828'}">{avg_change:+.2f}%</div>
+            </div>
+            <div style="flex:1;min-width:120px;background:#f8f9fa;border-radius:10px;padding:14px;text-align:center;border-left:4px solid #2e7d32">
+                <div style="color:#666;font-size:11px">Yukselen</div>
+                <div style="font-size:24px;font-weight:700;color:#2e7d32">{greens}</div>
+            </div>
+            <div style="flex:1;min-width:120px;background:#f8f9fa;border-radius:10px;padding:14px;text-align:center;border-left:4px solid #c62828">
+                <div style="color:#666;font-size:11px">Dusen</div>
+                <div style="font-size:24px;font-weight:700;color:#c62828">{reds}</div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+        # AI Yorum
+        st.markdown("### 🤖 GUNLUK SENTIMENT YORUMU")
+        # Dinamik yorum olustur
+        if avg_sent > 6:
+            yorum = f"""**TEKRAR {avg_sent:.2f} USTUNE ATMALIYIZ.**\n\nEndeks tarafinda genel olarak pozitif bolgede kaldik. Sentiment tarafinda {avg_sent:.2f} seviyesi test edildi. """
+            yorum += f"Toplam {len(all_scores)} hisseden **{greens} tanesi yesil bolgede** islem goruyor.\n\n"
+            yorum += f"Guclu yukselis gosteren **{best['Sembol']} (%{best['Gun%']:+.2f})** gunu lider kapatti. "
+            yorum += f"Momentum tarafinda pozitif mavi bolgede kalmaya devam ediyoruz.\n\n"
+            yorum += f"**Destek:** {avg_sent - 1:.2f} | **Direnc:** {avg_sent + 1:.2f}\n\n"
+            yorum += "Kisa vadeli geri cekilmeler olsa da, kapanisin pozitif bolgede gerceklesmesi yukselis egiliminin devam ettigine isaret ediyor."
+        elif avg_sent > 4:
+            yorum = f"""**SENTIMENT {avg_sent:.2f} SEVIYESINDE.**\n\nPiyasa notr-pozitif bir seyir izliyor. """
+            yorum += f"Toplam {len(all_scores)} hisseden {greens} tanesi yesil, {reds} tanesi kirmizi bolgede.\n\n"
+            yorum += f"Gunun yildizi **{best['Sembol']} (%{best['Gun%']:+.2f})** olurken, "
+            yorum += f"en zayif halka **{worst['Sembol']} (%{worst['Gun%']:+.2f})** oldu.\n\n"
+            yorum += f"**Destek:** {avg_sent - 1:.2f} | **Direnc:** {avg_sent + 1:.2f}\n\n"
+            yorum += "5.00 seviyesinin ustunde kaldikca alislar devam edebilir. Altinda kalinmasi durumunda satis baskisi artabilir."
+        else:
+            yorum = f"""**DIKKAT! SENTIMENT {avg_sent:.2f} SEVIYESINE GERILEDI.**\n\nEndeks tarafinda satis baskisi hakim. """
+            yorum += f"Toplam {len(all_scores)} hisseden sadece {greens} tanesi yesil bolgede kalabildi.\n\n"
+            yorum += f"En cok dusus gosteren **{worst['Sembol']} (%{worst['Gun%']:+.2f})** oldu. "
+            yorum += f"RSI asiri satim bolgesine yaklasan hisseler dip donusu adayi olabilir.\n\n"
+            yorum += f"**Destek:** {avg_sent - 0.5:.2f} | **Direnc:** {avg_sent + 1:.2f}\n\n"
+            yorum += "Kisa vadede temkinli olunmali. Satis baskisinin hafiflemesi icin sentiment'in 5.00 ustune cikmasi gerekiyor."
+        st.markdown(f'<div style="background:#f8f9fa;border-left:4px solid #1565c0;border-radius:8px;padding:20px;font-size:14px;line-height:1.8">{yorum}</div>', unsafe_allow_html=True)
+        # Tarih + saat
+        st.markdown(f"\n📅 **Yayın Tarihi:** {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        st.markdown("⚠️ *Bu yorum AI tarafindan otomatik olusturulmustur. Yatirim tavsiyesi degildir.*")
 
 elif page == "🔔 Sinyal Merkezi":
     st.title("🔔 Sinyal Merkezi")

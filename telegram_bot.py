@@ -14,10 +14,22 @@ import json
 BOT_TOKEN = "8707463842:AAG5Ng2k0oEiW2vxWJdBhOwmVKMFMNvxreM"
 CHAT_ID = "8560379317"
 
-WATCHLIST_BIST = ['THYAO.IS', 'ASELS.IS', 'GARAN.IS', 'AKBNK.IS', 'YKBNK.IS',
-                  'EREGL.IS', 'TUPRS.IS', 'PGSUS.IS', 'FROTO.IS', 'KOZAL.IS']
+WATCHLIST_BIST = ['THYAO', 'ASELS', 'GARAN', 'AKBNK', 'EREGL', 'TUPRS', 'SAHOL', 'KCHOL', 'BIMAS', 'SISE', 'TAVHL', 'TCELL', 'YKBNK', 'HALKB', 'VAKBN', 'ISCTR', 'PETKM', 'FROTO', 'GUBRF', 'PGSUS', 'SASA', 'TOASO', 'TTKOM', 'ARCLK', 'ASTOR', 'DOAS', 'EKGYO', 'ENKAI', 'MGROS']
 
-WATCHLIST_CRYPTO = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT', 'BNB/USDT']
+WATCHLIST_CRYPTO = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOGE', 'DOT', 'LINK']
+
+ALL_BIST = {
+    'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
+    'AKBNK': 'AKBNK.IS', 'EREGL': 'EREGL.IS', 'TUPRS': 'TUPRS.IS',
+    'SAHOL': 'SAHOL.IS', 'KCHOL': 'KCHOL.IS', 'BIMAS': 'BIMAS.IS',
+    'SISE': 'SISE.IS', 'TAVHL': 'TAVHL.IS', 'TCELL': 'TCELL.IS',
+    'YKBNK': 'YKBNK.IS', 'HALKB': 'HALKB.IS', 'VAKBN': 'VAKBN.IS',
+    'ISCTR': 'ISCTR.IS', 'PETKM': 'PETKM.IS', 'FROTO': 'FROTO.IS',
+    'GUBRF': 'GUBRF.IS', 'PGSUS': 'PGSUS.IS', 'SASA': 'SASA.IS',
+    'TOASO': 'TOASO.IS', 'TTKOM': 'TTKOM.IS', 'ARCLK': 'ARCLK.IS',
+    'ASTOR': 'ASTOR.IS', 'DOAS': 'DOAS.IS', 'EKGYO': 'EKGYO.IS',
+    'ENKAI': 'ENKAI.IS', 'MGROS': 'MGROS.IS'
+}
 
 
 def send_telegram(message):
@@ -30,88 +42,180 @@ def send_telegram(message):
 
 
 def get_updates(offset=None):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
-    params = {"timeout": 30}
-    if offset:
-        params["offset"] = offset
+    """Telegram mesajlarini al."""
     try:
-        r = requests.get(url, params=params, timeout=35)
-        return r.json().get("result", [])
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+        params = {"timeout": 30}
+        if offset:
+            params["offset"] = offset
+        response = requests.get(url, params=params, timeout=35)
+        data = response.json()
+        if data.get("ok"):
+            return data.get("result", [])
+        return []
     except:
         return []
 
 
 def calc_bist_signal(symbol):
+    """BIST hisse sinyal hesapla."""
     try:
-        df = yf.Ticker(symbol).history(period="3mo", interval="1d")
+        ticker_code = ALL_BIST.get(symbol, f"{symbol}.IS")
+        df = yf.Ticker(ticker_code).history(period="1mo", interval="1d")
         if df.empty or len(df) < 20:
             return None
         close = df['Close']
-        high = df['High']
-        low = df['Low']
         price = float(close.iloc[-1])
         prev = float(close.iloc[-2])
         change = ((price - prev) / prev) * 100
-        rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
-        macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
-        stoch_val = float(momentum.StochasticOscillator(high, low, close).stoch().iloc[-1])
-        ema21 = float(close.ewm(span=21).mean().iloc[-1])
-        score = 0
-        if rsi_val < 30: score += 40
-        elif rsi_val > 70: score -= 40
-        if macd_val > 0: score += 30
-        else: score -= 30
-        if stoch_val < 20: score += 20
-        elif stoch_val > 80: score -= 20
-        if price > ema21: score += 10
-        else: score -= 10
-        mom = ((price - float(close.iloc[-6])) / float(close.iloc[-6]) * 100)
-        if score > 20 and mom > 0: decision = "🟢 AL"
-        elif score < -20 and mom < 0: decision = "🔴 SAT"
-        else: decision = "🟡 TUT"
-        name = symbol.replace('.IS', '')
-        return {'name': name, 'price': price, 'change': change, 'score': score, 'rsi': rsi_val, 'decision': decision, 'momentum': mom}
-    except:
+        # RSI
+        delta = close.diff()
+        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        rsi_val = float(rsi.iloc[-1])
+        # MACD
+        ema12 = close.ewm(span=12).mean()
+        ema26 = close.ewm(span=26).mean()
+        macd_line = ema12 - ema26
+        macd_val = float(macd_line.iloc[-1])
+        # SMA
+        sma20 = float(close.rolling(20).mean().iloc[-1])
+        # Momentum
+        mom = ((price - float(close.iloc[-5])) / float(close.iloc[-5])) * 100
+        # Sentiment Puan (1-10)
+        sent_puan = 5.0
+        if rsi_val < 30: sent_puan += 2
+        elif rsi_val < 40: sent_puan += 1
+        elif rsi_val > 70: sent_puan -= 2
+        elif rsi_val > 60: sent_puan -= 1
+        if macd_val > 0: sent_puan += 1.5
+        else: sent_puan -= 1.5
+        if price > sma20: sent_puan += 1
+        else: sent_puan -= 1
+        if change > 2: sent_puan += 0.5
+        elif change < -2: sent_puan -= 0.5
+        sent_puan = max(1, min(10, sent_puan))
+        # Karar
+        if sent_puan >= 7: decision = "🟢 GUCLU AL"
+        elif sent_puan >= 5.5: decision = "🟢 AL"
+        elif sent_puan >= 4: decision = "🟡 TUT"
+        elif sent_puan >= 3: decision = "🔴 SAT"
+        else: decision = "🔴 GUCLU SAT"
+        return {
+            'name': symbol,
+            'price': price,
+            'change': change,
+            'rsi': rsi_val,
+            'macd': macd_val,
+            'momentum': mom,
+            'sent_puan': sent_puan,
+            'decision': decision
+        }
+    except Exception as e:
+        print(f"Hata {symbol}: {e}")
         return None
 
 
 def calc_crypto_signal(symbol):
+    """Kripto sinyal hesapla."""
     try:
-        ex = ccxt.binance({'enableRateLimit': True})
-        ohlcv = ex.fetch_ohlcv(symbol, '1d', limit=90)
-        df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
-        if len(df) < 20:
+        ticker_map = {
+            'BTC': 'BTC-USD', 'ETH': 'ETH-USD', 'BNB': 'BNB-USD',
+            'SOL': 'SOL-USD', 'XRP': 'XRP-USD', 'ADA': 'ADA-USD',
+            'AVAX': 'AVAX-USD', 'DOT': 'DOT-USD', 'DOGE': 'DOGE-USD',
+            'MATIC': 'MATIC-USD', 'LINK': 'LINK-USD', 'UNI': 'UNI-USD'
+        }
+        ticker_code = ticker_map.get(symbol, f"{symbol}-USD")
+        df = yf.Ticker(ticker_code).history(period="1mo", interval="1d")
+        if df.empty or len(df) < 20:
             return None
         close = df['Close']
-        high = df['High']
-        low = df['Low']
         price = float(close.iloc[-1])
         prev = float(close.iloc[-2])
         change = ((price - prev) / prev) * 100
-        rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
-        macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
-        score = 0
-        if rsi_val < 30: score += 40
-        elif rsi_val > 70: score -= 40
-        if macd_val > 0: score += 30
-        else: score -= 30
-        mom = ((price - float(close.iloc[-6])) / float(close.iloc[-6]) * 100)
-        if score > 20 and mom > 0: decision = "🟢 AL"
-        elif score < -20 and mom < 0: decision = "🔴 SAT"
-        else: decision = "🟡 TUT"
-        return {'name': symbol, 'price': price, 'change': change, 'score': score, 'rsi': rsi_val, 'decision': decision, 'momentum': mom}
-    except:
+        # RSI
+        delta = close.diff()
+        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        rsi_val = float(rsi.iloc[-1])
+        # MACD
+        ema12 = close.ewm(span=12).mean()
+        ema26 = close.ewm(span=26).mean()
+        macd_line = ema12 - ema26
+        macd_val = float(macd_line.iloc[-1])
+        # SMA
+        sma20 = float(close.rolling(20).mean().iloc[-1])
+        # Momentum
+        mom = ((price - float(close.iloc[-5])) / float(close.iloc[-5])) * 100
+        # Sentiment
+        sent_puan = 5.0
+        if rsi_val < 30: sent_puan += 2
+        elif rsi_val < 40: sent_puan += 1
+        elif rsi_val > 70: sent_puan -= 2
+        elif rsi_val > 60: sent_puan -= 1
+        if macd_val > 0: sent_puan += 1.5
+        else: sent_puan -= 1.5
+        if price > sma20: sent_puan += 1
+        else: sent_puan -= 1
+        if change > 3: sent_puan += 0.5
+        elif change < -3: sent_puan -= 0.5
+        sent_puan = max(1, min(10, sent_puan))
+        # Karar
+        if sent_puan >= 7: decision = "🟢 GUCLU AL"
+        elif sent_puan >= 5.5: decision = "🟢 AL"
+        elif sent_puan >= 4: decision = "🟡 TUT"
+        elif sent_puan >= 3: decision = "🔴 SAT"
+        else: decision = "🔴 GUCLU SAT"
+        return {
+            'name': symbol,
+            'price': price,
+            'change': change,
+            'rsi': rsi_val,
+            'macd': macd_val,
+            'momentum': mom,
+            'sent_puan': sent_puan,
+            'decision': decision
+        }
+    except Exception as e:
+        print(f"Hata {symbol}: {e}")
         return None
 
 
 def cmd_sinyal():
+    """Tum sinyaller."""
     msg = "🌊 <b>SentiFlow — Sinyal Raporu</b>\n"
     msg += f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
-    msg += "━━━━━━━━━━━━━━━━━━\n\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+    
+    # BIST
+    msg += "📊 <b>BIST Sinyalleri:</b>\n"
+    bist_count = 0
     for symbol in WATCHLIST_BIST:
         r = calc_bist_signal(symbol)
         if r:
-            msg += f"{r['decision']} <b>{r['name']}</b>: ₺{r['price']:.2f} ({r['change']:+.1f}%) RSI:{r['rsi']:.0f}\n"
+            emoji = "🟢" if "AL" in r['decision'] else "🔴" if "SAT" in r['decision'] else "🟡"
+            msg += f"{emoji} <b>{r['name']}</b>: ₺{r['price']:.2f} ({r['change']:+.1f}%) | RSI:{r['rsi']:.0f} | {r['decision']}\n"
+            bist_count += 1
+    if bist_count == 0:
+        msg += "⚠️ Veri alinamadi. Piyasa kapali olabilir.\n"
+    
+    # Kripto
+    msg += "\n🪙 <b>Kripto Sinyalleri:</b>\n"
+    kripto_count = 0
+    for symbol in WATCHLIST_CRYPTO:
+        r = calc_crypto_signal(symbol)
+        if r:
+            emoji = "🟢" if "AL" in r['decision'] else "🔴" if "SAT" in r['decision'] else "🟡"
+            msg += f"{emoji} <b>{r['name']}</b>: ${r['price']:,.2f} ({r['change']:+.1f}%) | RSI:{r['rsi']:.0f} | {r['decision']}\n"
+            kripto_count += 1
+    if kripto_count == 0:
+        msg += "⚠️ Veri alinamadi.\n"
+    
+    msg += "\n━━━━━━━━━━━━━━━━━━━━"
     msg += "\n🌐 sentiflow.streamlit.app"
     send_telegram(msg)
 
@@ -299,7 +403,7 @@ def cmd_formasyon():
     for symbol in WATCHLIST_BIST:
         try:
             ticker = ALL_BIST.get(symbol, f"{symbol}.IS")
-            df = yf.Ticker(ticker).history(period="3mo", interval="1d")
+            df = yf.Ticker(ticker).history(period="1mo", interval="1d")
             if df.empty or len(df) < 30:
                 continue
             close = df['Close'].tolist()
@@ -433,31 +537,29 @@ def cmd_kripto_detay():
 
 
 def cmd_ozet():
-    """Gunluk piyasa ozeti — en onemli sinyal."""
+    """Gunluk piyasa ozeti."""
     msg = "🌊 <b>SENTIFLOW GUNLUK OZET</b>\n"
     msg += f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
     
-    # Genel piyasa durumu
     results = []
     greens = 0
     reds = 0
+    yellows = 0
     for symbol in WATCHLIST_BIST:
         r = calc_bist_signal(symbol)
         if r:
             results.append(r)
             if "AL" in r['decision']: greens += 1
             elif "SAT" in r['decision']: reds += 1
+            else: yellows += 1
     
     total = len(results)
-    yellows = total - greens - reds
-    
     msg += f"📊 <b>Piyasa Durumu:</b>\n"
     msg += f"  🟢 AL: {greens}/{total}\n"
     msg += f"  🔴 SAT: {reds}/{total}\n"
     msg += f"  🟡 NOTR: {yellows}/{total}\n\n"
     
-    # En guclu sinyal
     if results:
         results.sort(key=lambda x: x['sent_puan'], reverse=True)
         best = results[0]
@@ -473,7 +575,7 @@ def cmd_ozet():
             msg += f"  🎯 {r['name']} (RSI: {r['rsi']:.0f})\n"
         msg += "\n"
     
-    # Kripto ozet
+    # Kripto
     msg += "🪙 <b>Kripto:</b>\n"
     for symbol in WATCHLIST_CRYPTO[:5]:
         r = calc_crypto_signal(symbol)
@@ -483,7 +585,6 @@ def cmd_ozet():
     
     msg += "\n━━━━━━━━━━━━━━━━━━━━"
     msg += "\n🌐 <b>sentiflow.streamlit.app</b>"
-    msg += "\n📱 Detayli analiz icin siteyi ziyaret edin!"
     send_telegram(msg)
 
 
