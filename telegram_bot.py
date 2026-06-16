@@ -147,11 +147,44 @@ def cmd_kripto():
     send_telegram(msg)
 
 
+def cmd_dip():
+    msg = "🎯 <b>Dip Donusu Adaylari</b>\n\n"
+    count = 0
+    for symbol in WATCHLIST_BIST:
+        r = calc_bist_signal(symbol)
+        if r and r['rsi'] < 35 and r['momentum'] < 0:
+            msg += f"🎯 <b>{r['name']}</b>: RSI {r['rsi']:.0f} | Mom: {r['momentum']:.1f}%\n"
+            count += 1
+    if count == 0:
+        msg += "Su an belirgin dip donusu adayi yok.\n"
+    msg += "\n🌐 sentiflow.streamlit.app"
+    send_telegram(msg)
+
+
+def cmd_top5():
+    msg = "🏆 <b>Gunun En Iyileri</b>\n\n"
+    results = []
+    for symbol in WATCHLIST_BIST:
+        r = calc_bist_signal(symbol)
+        if r:
+            results.append(r)
+    results.sort(key=lambda x: x['change'], reverse=True)
+    msg += "📈 <b>En Cok Yukselenler:</b>\n"
+    for r in results[:5]:
+        msg += f"  🟢 {r['name']}: {r['change']:+.1f}%\n"
+    msg += "\n📉 <b>En Cok Dusenler:</b>\n"
+    for r in results[-5:]:
+        msg += f"  🔴 {r['name']}: {r['change']:+.1f}%\n"
+    msg += "\n🌐 sentiflow.streamlit.app"
+    send_telegram(msg)
+
 def cmd_help():
     msg = "🌊 <b>SentiFlow Bot Komutlari</b>\n\n"
     msg += "/sinyal — Tum sinyaller\n"
     msg += "/bist — BIST analiz\n"
     msg += "/kripto — Kripto analiz\n"
+    msg += "/dip — Dip donusu adaylari\n"
+    msg += "/top5 — Gunun en iyileri\n"
     msg += "/help — Bu menu\n"
     msg += "\n🌐 sentiflow.streamlit.app"
     send_telegram(msg)
@@ -200,6 +233,10 @@ def handle_message(text):
         cmd_bist()
     elif text == "/kripto":
         cmd_kripto()
+    elif text == "/dip":
+        cmd_dip()
+    elif text == "/top5":
+        cmd_top5()
     else:
         send_telegram("Bilinmeyen komut. /help yazin.")
 
@@ -234,3 +271,4 @@ if __name__ == "__main__":
             break
         except:
             time.sleep(5)
+ 

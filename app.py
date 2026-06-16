@@ -13,7 +13,33 @@ import ccxt
 from datetime import datetime
 import requests
 
-st.set_page_config(page_title="SentiFlow", layout="wide", page_icon="🌊")
+st.set_page_config(page_title="SentiFlow", page_icon="🌊", layout="wide")
+
+# Auto-refresh her 5 dakikada
+import streamlit.components.v1 as components
+
+def auto_refresh(interval_seconds=300):
+    components.html(f"""
+        &lt;script>
+            setTimeout(function(){{
+                window.parent.location.reload();
+            }}, {interval_seconds * 1000});
+        &lt;/script>
+    """, height=0)
+
+auto_refresh(300)
+
+st.markdown("""&lt;style>
+    @media (max-width: 768px) {
+        [data-testid="stSidebar"] {min-width: 180px !important; max-width: 180px !important;}
+        .block-container {padding: 1rem 0.5rem !important;}
+        h1 {font-size: 1.4rem !important;}
+        h2 {font-size: 1.1rem !important;}
+    }
+    [data-testid="stSidebar"] {background: linear-gradient(180deg, #1a237e 0%, #283593 100%);}
+    [data-testid="stSidebar"] * {color: white !important;}
+    [data-testid="stSidebar"] .stRadio label {font-size: 13px !important;}
+&lt;/style>""", unsafe_allow_html=True)
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
@@ -310,12 +336,14 @@ if 'favorites' not in st.session_state:
 
 with st.sidebar:
     st.markdown("### 🌊 SentiFlow")
-    st.markdown("### SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.radio("Sayfa", ["🏠 Ana Sayfa", "📊 Hisse Analiz", "🪙 Kripto Analiz", "🧠 AI Tahmin", "🟢 Aktif Degisimler", "📊 Grid Grafik", "🎯 Dip Donusu", "📈 Backtest", "📋 Haftalik Rapor", "📐 Fibonacci/Bollinger", "📐 Formasyonlar", "🔴 Divergence", "📊 10 Gun Heatmap", "🔔 Sinyal Merkezi", "⭐ Favorilerim", "🔥 Heatmap", "⚔️ Karsilastir", "🏆 Gunun En Iyileri", "💼 Portfolyo", "🎯 Destek/Direnc", "🕐 Piyasa Saati", "🇺🇸 S&P / NASDAQ", "🇪🇺 Avrupa", "🥇 Altin & Doviz", "📰 KAP Haberleri", "📋 Hisse Tablosu", "🪙 Kripto Top 10", "🔍 Akilli Filtre", "📈 Gunluk Sentiment", "🔄 Osilator", "📋 BIST30 Ilk 10", "📋 BIST30 Son 10"])
+    page = st.radio("Sayfa", [...])
     st.markdown("---")
-    st.caption(f"v3.1 | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    st.markdown("""<div style="background:linear-gradient(135deg,#ff8f00,#ff6f00);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:14px;font-weight:700;color:white">⭐ PRO'ya Gec</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.85)">Canli uyari + AI rapor + Oncelikli destek</div>
+    </div>""", unsafe_allow_html=True)
 
 if page == "🏠 Ana Sayfa":
     # Ust Ticker Bandi
