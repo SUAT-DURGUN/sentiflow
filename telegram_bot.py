@@ -564,7 +564,7 @@ if __name__ == "__main__":
     # Baslangic mesaji
     send_telegram("🌊 <b>SentiFlow Bot aktif!</b>\n\nKomutlar:\n/sinyal — Tum sinyaller\n/bist — BIST analiz\n/kripto — Kripto analiz\n/help — Yardim")
     
-        offset = None
+    offset = None
     alert_check = 0
     daily_sent = False
     while True:
