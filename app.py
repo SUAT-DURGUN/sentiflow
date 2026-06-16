@@ -12,6 +12,11 @@ from ta import momentum, trend
 import ccxt
 from datetime import datetime
 import requests
+import pytz
+TR_TZ = pytz.timezone('Europe/Istanbul')
+
+def get_turkey_time():
+    return get_turkey_time()(TR_TZ)
 
 st.set_page_config(
     page_title="SentiFlow — Piyasa Sentiment Platformu",
@@ -131,6 +136,26 @@ def get_crypto_data(symbol):
         pass
     return pd.DataFrame()
 
+@st.cache_data(ttl=600)
+def get_stock_data(symbol):
+    """Genel hisse/emtia verisi cek (ABD, Avrupa, Doviz)."""
+    try:
+        df = yf.Ticker(symbol).history(period="3mo", interval="1d")
+        if not df.empty:
+            df = df.dropna(subset=['Close'])
+            df = df[df['Close'] > 0]
+            return df
+    except:
+        pass
+    try:
+        df = yf.download(symbol, period="3mo", interval="1d", progress=False)
+        if not df.empty:
+            df = df.dropna(subset=['Close'])
+            return df
+    except:
+        pass
+    return pd.DataFrame()
+
 
 @st.cache_data(ttl=600)
 def get_bist100_index():
@@ -151,14 +176,14 @@ def get_bist30_index():
 @st.cache_data(ttl=300)
 def get_kap_news():
     return [
-        {'symbol': 'BIST100', 'title': 'BIST100 endeksi gune yukselisle basladi', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'THYAO', 'title': 'Turk Hava Yollari yolcu sayisinda rekor kirdi', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'ASELS', 'title': 'ASELSAN yeni savunma ihracati anlasmasi imzaladi', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'GARAN', 'title': 'Garanti Bankasi temettu dagitim tarihini acikladi', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'BTC', 'title': 'Bitcoin 64.000$ seviyesinde tutunmaya calisiyor', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'ALTIN', 'title': 'Ons altin 4.200$ uzerinde seyrediyor', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'USD', 'title': 'Dolar/TL 46.26 seviyesinden islem goruyor', 'date': datetime.now().strftime('%d.%m.%Y')},
-        {'symbol': 'PGSUS', 'title': 'Pegasus yaz sezonunda kapasite artisi planliyor', 'date': datetime.now().strftime('%d.%m.%Y')},
+        {'symbol': 'BIST100', 'title': 'BIST100 endeksi gune yukselisle basladi', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'THYAO', 'title': 'Turk Hava Yollari yolcu sayisinda rekor kirdi', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'ASELS', 'title': 'ASELSAN yeni savunma ihracati anlasmasi imzaladi', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'GARAN', 'title': 'Garanti Bankasi temettu dagitim tarihini acikladi', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'BTC', 'title': 'Bitcoin 64.000$ seviyesinde tutunmaya calisiyor', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'ALTIN', 'title': 'Ons altin 4.200$ uzerinde seyrediyor', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'USD', 'title': 'Dolar/TL 46.26 seviyesinden islem goruyor', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
+        {'symbol': 'PGSUS', 'title': 'Pegasus yaz sezonunda kapasite artisi planliyor', 'date': get_turkey_time()().strftime('%d.%m.%Y')},
     ]
 
 
@@ -282,7 +307,7 @@ def predict_trend(symbol):
 
 @st.cache_data(ttl=300)
 def get_all_bist_scores():
-    """Tum BIST skorlarini hesapla — DOGRU verilerle."""
+    """Tum BIST skorlarini hesapla — DOGRU ve CESITLI."""
     results = []
     for symbol, ticker in ALL_BIST.items():
         try:
@@ -291,35 +316,59 @@ def get_all_bist_scores():
                 continue
             close = df['Close']
             price, change, prev = get_accurate_change(df)
-            if price == 0:
+            if price == 0 or pd.isna(price):
                 continue
-            # RSI hesapla
+            # RSI
             rsi_val = float(momentum.RSIIndicator(close, window=14).rsi().iloc[-1])
-            # MACD hesapla
-            macd_obj = trend.MACD(close)
-            macd_val = float(macd_obj.macd_diff().iloc[-1])
+            if pd.isna(rsi_val): rsi_val = 50
+            # MACD
+            macd_val = float(trend.MACD(close).macd_diff().iloc[-1])
+            if pd.isna(macd_val): macd_val = 0
             # SMA
             sma20 = float(close.rolling(20).mean().iloc[-1]) if len(close) >= 20 else price
-            # Sentiment Puan (1-10)
+            if pd.isna(sma20): sma20 = price
+            # Momentum (5 gunluk)
+            mom = ((price - float(close.iloc[-6])) / float(close.iloc[-6])) * 100 if len(close) >= 6 else 0
+            if pd.isna(mom): mom = 0
+            # Sentiment Puan (1-10) — CESITLI SONUC URETEN ALGORITMA
             sent = 5.0
-            if rsi_val < 30: sent += 2
-            elif rsi_val < 40: sent += 1
-            elif rsi_val > 70: sent -= 2
-            elif rsi_val > 60: sent -= 1
-            if macd_val > 0: sent += 1.5
-            else: sent -= 1.5
-            if price > sma20: sent += 1
-            else: sent -= 1
-            if change > 2: sent += 0.5
+            # RSI etkisi (genis aralik)
+            if rsi_val < 25: sent += 2.0
+            elif rsi_val < 35: sent += 1.3
+            elif rsi_val < 45: sent += 0.5
+            elif rsi_val > 75: sent -= 2.0
+            elif rsi_val > 65: sent -= 1.3
+            elif rsi_val > 55: sent -= 0.5
+            # MACD etkisi
+            if macd_val > 0: sent += 0.7
+            else: sent -= 0.7
+            # Fiyat vs SMA20
+            sma_diff = ((price - sma20) / sma20) * 100 if sma20 > 0 else 0
+            if sma_diff > 5: sent += 1.2
+            elif sma_diff > 2: sent += 0.7
+            elif sma_diff > 0: sent += 0.3
+            elif sma_diff < -5: sent -= 1.2
+            elif sma_diff < -2: sent -= 0.7
+            elif sma_diff < 0: sent -= 0.3
+            # Gunluk degisim
+            if change > 4: sent += 1.0
+            elif change > 2: sent += 0.5
+            elif change > 0.5: sent += 0.2
+            elif change < -4: sent -= 1.0
             elif change < -2: sent -= 0.5
+            elif change < -0.5: sent -= 0.2
+            # Momentum etkisi
+            if mom > 5: sent += 0.5
+            elif mom > 2: sent += 0.3
+            elif mom < -5: sent -= 0.5
+            elif mom < -2: sent -= 0.3
             sent = max(1, min(10, sent))
             # Karar
-            if sent >= 7: karar = "🟢 GUCLU AL"
-            elif sent >= 5.5: karar = "🟢 AL"
-            elif sent >= 4: karar = "🟡 TUT"
+            if sent >= 7.5: karar = "🟢 GUCLU AL"
+            elif sent >= 6: karar = "🟢 AL"
+            elif sent >= 4.5: karar = "🟡 TUT"
             elif sent >= 3: karar = "🔴 SAT"
             else: karar = "🔴 GUCLU SAT"
-            # Sentiment skoru (eski uyumluluk)
             sentiment_score = (sent - 5) * 4
             results.append({
                 'Sembol': symbol,
@@ -329,6 +378,7 @@ def get_all_bist_scores():
                 'MACD': round(macd_val, 3),
                 'Sent.Puan': round(sent, 1),
                 'Sentiment': round(sentiment_score, 1),
+                'Momentum%': round(mom, 2),
                 'Karar': karar
             })
         except:
@@ -382,7 +432,7 @@ with st.sidebar:
 
 if page == "🏠 Ana Sayfa":
     # Canli Badge
-    st.markdown(f'<div style="text-align:right;margin-bottom:10px"><span style="background:#2e7d32;color:white;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600">🟢 CANLI | {datetime.now().strftime("%H:%M")}</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:right;margin-bottom:10px"><span style="background:#2e7d32;color:white;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600">🟢 CANLI | {get_turkey_time()().strftime("%H:%M")}</span></div>', unsafe_allow_html=True)
     # Ust Ticker Bandi
     try:
         xu100 = yf.Ticker("XU100.IS").history(period="2d")
@@ -587,7 +637,7 @@ if page == "🏠 Ana Sayfa":
         fig_pie.update_layout(height=300, paper_bgcolor='white', showlegend=True)
         st.plotly_chart(fig_pie, use_container_width=True)
     st.markdown("---")
-    st.caption(f"Son guncelleme: {datetime.now().strftime('%d.%m.%Y %H:%M')} | sentiflow.streamlit.app | Yatirim tavsiyesi degildir.")
+    st.caption(f"Son guncelleme: {get_turkey_time()().strftime('%d.%m.%Y %H:%M')} | sentiflow.streamlit.app | Yatirim tavsiyesi degildir.")
 
 
 elif page == "📊 Hisse Analiz":
@@ -795,7 +845,7 @@ elif page == "📰 AI Gunluk Yorum":
             yorum += "Kisa vadede temkinli olunmali. Satis baskisinin hafiflemesi icin sentiment'in 5.00 ustune cikmasi gerekiyor."
         st.markdown(f'<div style="background:#f8f9fa;border-left:4px solid #1565c0;border-radius:8px;padding:20px;font-size:14px;line-height:1.8">{yorum}</div>', unsafe_allow_html=True)
         # Tarih + saat
-        st.markdown(f"\n📅 **Yayın Tarihi:** {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        st.markdown(f"\n📅 **Yayın Tarihi:** {get_turkey_time()().strftime('%d.%m.%Y %H:%M')}")
         st.markdown("⚠️ *Bu yorum AI tarafindan otomatik olusturulmustur. Yatirim tavsiyesi degildir.*")
 
 elif page == "🔔 Sinyal Merkezi":
@@ -1238,7 +1288,7 @@ elif page == "🎯 Destek/Direnc":
 elif page == "🕐 Piyasa Saati":
     st.title("🕐 Piyasa Saati")
     st.caption("Global borsalarin acilis/kapanis durumu")
-    now = datetime.now()
+    now = get_turkey_time()()
     hour = now.hour
     minute = now.minute
     weekday = now.weekday()
