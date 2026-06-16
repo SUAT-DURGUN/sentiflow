@@ -16,7 +16,7 @@ import pytz
 TR_TZ = pytz.timezone('Europe/Istanbul')
 
 def get_turkey_time():
-    return get_turkey_time()(TR_TZ)
+    return datetime.now(TR_TZ)
 
 st.set_page_config(
     page_title="SentiFlow — Piyasa Sentiment Platformu",
