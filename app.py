@@ -314,7 +314,7 @@ with st.sidebar:
     st.markdown("### 🌊 SentiFlow")
     st.caption("Piyasa Sentiment Platformu")
     st.markdown("---")
-    page = st.radio("Sayfa", [...])
+    page = st.radio("Sayfa", ["🏠 Ana Sayfa","📊 Hisse Analiz","🪙 Kripto Analiz","🧠 AI Tahmin","🟢 Aktif Degisimler","📊 Grid Grafik","🎯 Dip Donusu","📈 Backtest","📋 Haftalik Rapor","📐 Fibonacci/Bollinger","📐 Formasyonlar","🔴 Divergence","📊 10 Gun Heatmap","🔔 Sinyal Merkezi","⭐ Favorilerim","🔥 Heatmap","⚔️ Karsilastir","🏆 Gunun En Iyileri","💼 Portfolyo","🎯 Destek/Direnc","🕐 Piyasa Saati","🇺🇸 S&P / NASDAQ","🇪🇺 Avrupa","🥇 Altin & Doviz","📰 KAP Haberleri","📋 Hisse Tablosu","🪙 Kripto Top 10","🔍 Akilli Filtre","📈 Gunluk Sentiment","🔄 Osilator","📋 BIST30 Ilk 10","📋 BIST30 Son 10"])
     st.markdown("---")
     st.markdown("""<div style="background:linear-gradient(135deg,#ff8f00,#ff6f00);border-radius:10px;padding:12px;text-align:center">
         <div style="font-size:14px;font-weight:700;color:white">⭐ PRO'ya Gec</div>
