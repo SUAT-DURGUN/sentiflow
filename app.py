@@ -16,30 +16,6 @@ import requests
 st.set_page_config(page_title="SentiFlow", page_icon="🌊", layout="wide")
 
 # Auto-refresh her 5 dakikada
-import streamlit.components.v1 as components
-
-def auto_refresh(interval_seconds=300):
-    components.html(f"""
-        &lt;script>
-            setTimeout(function(){{
-                window.parent.location.reload();
-            }}, {interval_seconds * 1000});
-        &lt;/script>
-    """, height=0)
-
-auto_refresh(300)
-
-st.markdown("""&lt;style>
-    @media (max-width: 768px) {
-        [data-testid="stSidebar"] {min-width: 180px !important; max-width: 180px !important;}
-        .block-container {padding: 1rem 0.5rem !important;}
-        h1 {font-size: 1.4rem !important;}
-        h2 {font-size: 1.1rem !important;}
-    }
-    [data-testid="stSidebar"] {background: linear-gradient(180deg, #1a237e 0%, #283593 100%);}
-    [data-testid="stSidebar"] * {color: white !important;}
-    [data-testid="stSidebar"] .stRadio label {font-size: 13px !important;}
-&lt;/style>""", unsafe_allow_html=True)
 
 BIST30 = {
     'THYAO': 'THYAO.IS', 'ASELS': 'ASELS.IS', 'GARAN': 'GARAN.IS',
