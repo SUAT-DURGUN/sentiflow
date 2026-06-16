@@ -110,15 +110,6 @@ def get_accurate_change(df):
 
 
 @st.cache_data(ttl=600)
-def get_bist_data(symbol):
-    try:
-        yahoo = ALL_BIST.get(symbol, f"{symbol}.IS")
-        return yf.Ticker(yahoo).history(period="3mo", interval="1d")
-    except:
-        return pd.DataFrame()
-
-
-@st.cache_data(ttl=600)
 def get_crypto_data(symbol):
     try:
         ex = ccxt.binance({'enableRateLimit': True})
