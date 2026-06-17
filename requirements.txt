@@ -7,5 +7,5 @@ ccxt
 requests
 scikit-learn
 numpy
-pytz
 beautifulsoup4
+lxml

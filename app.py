@@ -417,6 +417,7 @@ def calc_sentiment_v5(df):
         else: bb_score = -90  # Ust banda yakin — asiri alim
 
     # --- FAKTOR 5: Volume Trend (Agirlik: %10) ---
+    vol_ratio = 1.0
     vol_score = 0
     if len(volume) >= 10 and volume.sum() > 0:
         vol_avg5 = float(volume.iloc[-5:].mean())
@@ -429,6 +430,7 @@ def calc_sentiment_v5(df):
             elif daily_change < 0 and vol_ratio > 1.0: vol_score = -40
             elif vol_ratio < 0.5: vol_score = 0  # Dusuk hacim — notr
             else: vol_score = 0
+
 
     # --- FAKTOR 6: EMA Cross (Agirlik: %10) ---
     ema9 = float(close.ewm(span=9).mean().iloc[-1])
