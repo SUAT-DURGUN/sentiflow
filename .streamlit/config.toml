@@ -4,6 +4,11 @@ backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f5f5f5"
 textColor = "#333333"
 font = "sans serif"
-
 [server]
 maxUploadSize = 5
+
+# pip install streamlit-autorefresh
+from streamlit_autorefresh import st_autorefresh
+
+# Her 60 saniyede bir yenile
+st_autorefresh(interval=60000, limit=None, key="datarefresh")
